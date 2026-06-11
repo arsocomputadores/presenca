@@ -1,0 +1,57 @@
+<%- include('../partials/shell-start') %>
+
+<div class="card">
+  <div class="card-header">
+    <h3>Projetos especiais</h3>
+    <% if (usuario.perfil === 'admin') { %>
+      <a href="/projetos/novo" class="btn btn-primary">Novo Projeto</a>
+    <% } %>
+  </div>
+  <div class="card-body">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Projeto</th>
+            <th>Período</th>
+            <th>Alunos</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% projetos.forEach(function(p) { %>
+            <tr>
+              <td>
+                <strong><%= p.nome %></strong>
+                <% if (p.descricao) { %><br><small style="color:var(--muted)"><%= p.descricao %></small><% } %>
+              </td>
+              <td>
+                <%= formatarData(p.data_inicio) %>
+                <% if (p.data_fim) { %>
+                  — <%= formatarData(p.data_fim) %>
+                <% } else { %>
+                  — em andamento
+                <% } %>
+              </td>
+              <td><span class="badge badge-success"><%= p.total_alunos %> alunos</span></td>
+              <td>
+                <div style="display: flex; gap: 0.5rem;">
+                  <% if (usuario.perfil === 'admin') { %>
+                    <a href="/projetos/<%= p.id %>/alunos" class="btn btn-sm btn-primary">Selecionar alunos</a>
+                    <a href="/projetos/<%= p.id %>/editar" class="btn btn-sm btn-secondary">Editar</a>
+                    <form action="/projetos/<%= p.id %>/excluir" method="post" style="display:inline" onsubmit="return confirm('Tem certeza que deseja excluir este projeto? Todos os vínculos de alunos serão removidos.')">
+                      <button type="submit" class="btn btn-sm btn-danger">Excluir</button>
+                    </form>
+                  <% } %>
+                  <a href="/relatorios?projeto_id=<%= p.id %>" class="btn btn-sm btn-outline">Relatório</a>
+                </div>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/shell-end') %>

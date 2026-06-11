@@ -1,0 +1,87 @@
+<%- include('partials/shell-start') %>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="label">Alunos ativos</div>
+    <div class="value"><%= stats.alunosAtivos %></div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Turmas ativas</div>
+    <div class="value"><%= stats.turmasAtivas %></div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Projetos ativos</div>
+    <div class="value"><%= stats.projetosAtivos %></div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Lançamentos hoje</div>
+    <div class="value"><%= stats.lancamentosHoje %></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h3>Acesso rápido</h3>
+  </div>
+  <div class="card-body quick-actions">
+    <% if (usuario.perfil === 'admin' || usuario.perfil === 'professor') { %>
+      <a href="/frequencia" class="btn btn-primary">Lançar frequência</a>
+    <% } %>
+    <% if (usuario.perfil === 'admin') { %>
+      <a href="/alunos/novo" class="btn btn-secondary">Cadastrar aluno</a>
+    <% } %>
+    <% if (usuario.perfil === 'admin' || usuario.perfil === 'coordenacao' || usuario.perfil === 'direcao') { %>
+      <a href="/relatorios" class="btn btn-secondary">Ver relatórios</a>
+    <% } %>
+  </div>
+</div>
+
+<% if (usuario.perfil === 'admin' || usuario.perfil === 'coordenacao' || usuario.perfil === 'direcao') { %>
+  <div class="card" style="margin-top:1.5rem">
+    <div class="card-header">
+      <h3>Consulta rápida de aluno</h3>
+      <a href="/alunos" class="btn btn-sm btn-outline">Abrir consultas</a>
+    </div>
+    <div class="card-body">
+      <form method="get" action="/alunos" class="freq-toolbar" style="margin-bottom:0">
+        <div class="form-group" style="flex:1">
+          <label for="busca">Nome do aluno</label>
+          <input type="text" id="busca" name="busca" placeholder="Digite o nome para localizar..." />
+        </div>
+        <div style="display:flex; align-items:flex-end">
+          <button type="submit" class="btn btn-primary">Pesquisar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+<% } %>
+
+<div class="card" style="margin-top:1.5rem">
+  <div class="card-header">
+    <h3><%= usuario.perfil === 'admin' || usuario.perfil === 'professor' ? 'Minhas Turmas' : 'Turmas cadastradas' %></h3>
+    <% if (usuario.perfil === 'admin') { %>
+      <a href="/turmas" class="btn btn-sm btn-outline">Ver todas</a>
+    <% } %>
+  </div>
+  <div class="card-body">
+    <div class="turmas-grid">
+      <% turmas.slice(0, 6).forEach(function(t) { %>
+        <% if (usuario.perfil === 'admin' || usuario.perfil === 'professor') { %>
+          <a href="/frequencia?turma_id=<%= t.id %>" class="turma-card" style="text-decoration:none;color:inherit">
+            <h4><%= t.nome %></h4>
+            <div class="meta"><%= t.serie %> · <%= formatarTurno(t.turno) %></div>
+            <div class="count"><%= t.total_alunos %> alunos</div>
+          </a>
+        <% } else { %>
+          <div class="turma-card">
+            <h4><%= t.nome %></h4>
+            <div class="meta"><%= t.serie %> · <%= formatarTurno(t.turno) %></div>
+            <div class="count"><%= t.total_alunos %> alunos</div>
+          </div>
+        <% } %>
+      <% }) %>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/shell-end') %>

@@ -1,0 +1,55 @@
+<%- include('../partials/shell-start') %>
+
+<% if (typeof sucesso !== 'undefined' && sucesso) { %><div class="alert alert-success"><%= sucesso %></div><% } %>
+<% if (typeof erro !== 'undefined' && erro) { %><div class="alert alert-error"><%= erro %></div><% } %>
+
+<div class="card">
+  <div class="card-header">
+    <h3>Mensagens internas</h3>
+    <div style="display:flex; gap:0.75rem; flex-wrap:wrap">
+      <% if (usuario && ['admin', 'coordenacao', 'direcao'].includes(usuario.perfil)) { %>
+        <a href="/mensagens/nova" class="btn btn-primary">Nova mensagem</a>
+      <% } %>
+      <form action="/mensagens/lidas" method="post" style="margin:0">
+        <button type="submit" class="btn btn-secondary">Marcar todas como lidas</button>
+      </form>
+    </div>
+  </div>
+  <div class="card-body">
+    <% if (!mensagens.length) { %>
+      <div class="alert alert-warning">Nenhuma mensagem recebida até o momento.</div>
+    <% } else { %>
+      <div class="mensagens-lista">
+        <% mensagens.forEach(function(m) { %>
+          <div class="mensagem-card <%= m.lida_em ? 'is-read' : 'is-unread' %>">
+            <div class="mensagem-card-header">
+              <div>
+                <h4><%= m.titulo %></h4>
+                <div class="mensagem-meta">
+                  <span>De: <strong><%= m.remetente_nome %></strong></span>
+                  <span>Enviada em <%= new Date(m.criado_em).toLocaleString('pt-BR') %></span>
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+                <% if (m.lida_em) { %>
+                  <span class="badge badge-success">Lida</span>
+                <% } else { %>
+                  <span class="badge badge-warning">Não lida</span>
+                  <form action="/mensagens/<%= m.destinatario_mensagem_id %>/lida" method="post" style="margin:0">
+                    <button type="submit" class="btn btn-sm btn-secondary">Marcar como lida</button>
+                  </form>
+                <% } %>
+              </div>
+            </div>
+            <div class="mensagem-corpo"><%= m.corpo %></div>
+            <% if (m.lida_em) { %>
+              <div class="mensagem-lida-em">Lida em <%= new Date(m.lida_em).toLocaleString('pt-BR') %></div>
+            <% } %>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<%- include('../partials/shell-end') %>

@@ -1,0 +1,192 @@
+<%- include('../partials/shell-start') %>
+
+<!-- Script para Gráficos -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div style="display: grid; grid-template-columns: 1fr 350px; gap: 2rem; align-items: start;">
+  
+  <div class="main-column">
+    <!-- Resumo de Estatísticas (Apenas Admin/Direção/Coordenação) -->
+    <% if (usuario.perfil !== 'professor') { %>
+      <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 2rem;">
+        <div class="stat-card">
+          <div class="label">Presenças (Ano)</div>
+          <div class="value" style="color: var(--success)"><%= resumo.geral.presencas %></div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Faltas (Ano)</div>
+          <div class="value" style="color: var(--danger)"><%= resumo.geral.faltas %></div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Justificadas (Ano)</div>
+          <div class="value" style="color: var(--warning)"><%= resumo.geral.justificadas %></div>
+        </div>
+      </div>
+    <% } %>
+
+    <% 
+      const faltasPeriodo = historico.filter(h => h.status === 'F');
+    %>
+    <div class="card" style="margin-bottom: 2rem;">
+      <div class="card-header">
+        <h3>Faltas no período selecionado</h3>
+        <span class="badge badge-danger"><%= faltasPeriodo.length %></span>
+      </div>
+      <div class="card-body">
+        <% if (faltasPeriodo.length === 0) { %>
+          <div class="alert alert-info">Nenhuma falta registrada neste período.</div>
+        <% } else { %>
+          <div style="display:flex; flex-wrap: wrap; gap: 0.5rem;">
+            <% faltasPeriodo.forEach(function(f) { %>
+              <span class="badge badge-info"><%= formatarData(f.data) %> — <%= f.horario %>º</span>
+            <% }) %>
+          </div>
+        <% } %>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3>Folha de Frequência: <%= aluno.nome %></h3>
+        <div style="display:flex; gap:0.5rem">
+          <button onclick="window.print()" class="btn btn-sm btn-outline no-print">Imprimir PDF</button>
+          <a href="/alunos" class="btn btn-sm btn-outline no-print">Voltar</a>
+        </div>
+      </div>
+      <div class="card-body">
+        <form method="get" class="freq-toolbar">
+          <div class="form-group">
+            <label>Ano</label>
+            <select name="ano" onchange="this.form.submit()">
+              <% for(let a = 2024; a <= new Date().getFullYear(); a++) { %>
+                <option value="<%= a %>" <%= filtros.ano == a ? 'selected' : '' %>><%= a %></option>
+              <% } %>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Mês</label>
+            <select name="mes" onchange="this.form.submit()">
+              <% const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'] %>
+              <% meses.forEach((m, i) => { %>
+                <option value="<%= i + 1 %>" <%= filtros.mes == (i + 1) ? 'selected' : '' %>><%= m %></option>
+              <% }) %>
+            </select>
+          </div>
+        </form>
+
+        <% if (historico.length === 0) { %>
+          <div class="alert alert-info">Nenhum registro de frequência para este período.</div>
+        <% } else { %>
+          <div class="table-wrap" style="margin-top: 1.5rem;">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Horário</th>
+                  <th>Status</th>
+                  <th>Observação</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% historico.forEach(function(h) { %>
+                  <tr>
+                    <td><%= formatarData(h.data) %></td>
+                    <td><span class="badge badge-info"><%= h.horario %>º Horário</span></td>
+                    <td>
+                      <% if (h.status === 'P') { %>
+                        <span class="badge badge-success">Presente</span>
+                      <% } else if (h.status === 'F') { %>
+                        <span class="badge badge-danger">Falta</span>
+                      <% } else { %>
+                        <span class="badge badge-warning">Justificada</span>
+                      <% } %>
+                    </td>
+                    <td><%= h.observacao || '—' %></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Coluna Lateral: Gráfico (Apenas Admin/Direção/Coordenação) -->
+  <aside class="side-column">
+    <% if (usuario.perfil !== 'professor') { %>
+      <div class="card">
+        <div class="card-header">
+          <h3>Faltas Mensais (<%= filtros.ano %>)</h3>
+        </div>
+        <div class="card-body">
+          <canvas id="faltasChart" height="300"></canvas>
+        </div>
+      </div>
+      
+      <div class="card" style="margin-top: 1.5rem; background: var(--primary-dark); color: white;">
+        <div class="card-body">
+          <div style="font-size: 0.85rem; opacity: 0.8;">Taxa de Frequência</div>
+          <div style="font-size: 2rem; font-weight: 800;">
+            <% 
+              const total = resumo.geral.total || 1;
+              const taxa = Math.round((resumo.geral.presencas / total) * 100);
+            %>
+            <%= taxa %>%
+          </div>
+          <div style="margin-top: 1rem; background: rgba(255,255,255,0.1); height: 8px; border-radius: 10px; overflow: hidden;">
+            <div style="width: <%= taxa %>%; background: var(--primary-light); height: 100%;"></div>
+          </div>
+        </div>
+      </div>
+    <% } %>
+  </aside>
+
+</div>
+
+<% if (usuario.perfil !== 'professor') { %>
+<script>
+  const ctx = document.getElementById('faltasChart').getContext('2d');
+  const mesesLabels = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+  
+  // Preparar dados do banco (meses vêm 1-12)
+  const dadosFaltas = new Array(12).fill(0);
+  <% resumo.grafico.forEach(function(item) { %>
+    dadosFaltas[<%= item.mes - 1 %>] = <%= item.faltas %>;
+  <% }); %>
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: mesesLabels,
+      datasets: [{
+        label: 'Número de Faltas',
+        data: dadosFaltas,
+        backgroundColor: '#ef4444',
+        borderRadius: 6,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { stepSize: 1, color: '#64748b' },
+          grid: { borderDash: [5, 5], color: '#e2e8f0' }
+        },
+        x: {
+          ticks: { color: '#64748b' },
+          grid: { display: false }
+        }
+      }
+    }
+  });
+</script>
+<% } %>
+
+<%- include('../partials/shell-end') %>

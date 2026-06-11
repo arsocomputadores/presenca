@@ -1,0 +1,97 @@
+<%- include('../partials/shell-start') %>
+
+<% if (sucesso) { %><div class="alert alert-success"><%= sucesso %></div><% } %>
+<% if (erro) { %><div class="alert alert-error"><%= erro %></div><% } %>
+
+<div class="card">
+  <div class="card-header">
+      <h3>Alunos</h3>
+      <div style="display: flex; gap: 0.5rem;">
+        <% if (usuario.perfil === 'admin') { %>
+          <a href="/alunos/importar" class="btn btn-outline">Importar PDF</a>
+          <a href="/alunos/novo" class="btn btn-primary">Novo aluno</a>
+        <% } %>
+      </div>
+    </div>
+  <div class="card-body">
+    <form method="get" class="filter-bar" style="margin-bottom:1.25rem">
+      <div class="form-group">
+        <label>Buscar</label>
+        <input type="text" name="busca" placeholder="Código ou nome..." value="<%= filtros.busca || '' %>">
+      </div>
+      <div class="form-group">
+        <label>Turma</label>
+        <select name="turma_id">
+          <option value="">Todas</option>
+          <% turmas.forEach(function(t) { %>
+            <option value="<%= t.id %>" <%= filtros.turma_id == t.id ? 'selected' : '' %>><%= t.nome %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select name="status">
+          <option value="ativo" <%= filtros.status === 'ativo' ? 'selected' : '' %>>Ativos</option>
+          <option value="inativo" <%= filtros.status === 'inativo' ? 'selected' : '' %>>Inativos</option>
+          <option value="todos" <%= filtros.status === 'todos' ? 'selected' : '' %>>Todos</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-secondary">Filtrar</button>
+    </form>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Nome</th>
+            <th>Turma</th>
+            <th>Nascimento</th>
+            <th>Status</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (alunos.length === 0) { %>
+            <tr><td colspan="6" style="text-align:center;color:var(--muted)">Nenhum aluno encontrado.</td></tr>
+          <% } %>
+          <% alunos.forEach(function(a) { %>
+            <tr>
+              <td class="codigo-cell" data-label="Código"><%= a.codigo_formatado %></td>
+              <td class="nome-cell" data-label="Nome"><%= a.nome %></td>
+              <td data-label="Turma"><%= a.turma_nome || '—' %></td>
+              <td data-label="Nascimento"><%= formatarData(a.data_nascimento) %></td>
+              <td data-label="Status">
+                <% if (a.ativo) { %>
+                  <span class="badge badge-success">Ativo</span>
+                <% } else { %>
+                  <span class="badge badge-muted">Inativo</span>
+                <% } %>
+              </td>
+              <td class="actions-cell" data-label="Ações">
+                  <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                    <a href="/alunos/<%= a.id %>/historico" class="btn btn-sm btn-secondary">Histórico</a>
+                    <% if (usuario.perfil === 'admin') { %>
+                      <a href="/alunos/<%= a.id %>/editar" class="btn btn-sm btn-secondary">Editar</a>
+                      <% if (a.ativo) { %>
+                        <a href="/alunos/<%= a.id %>/transferir" class="btn btn-sm btn-outline">Transferir</a>
+                        <form action="/alunos/<%= a.id %>/desativar" method="post" onsubmit="return confirm('Confirmar saída do aluno?')">
+                          <button type="submit" class="btn btn-sm btn-danger">Desativar</button>
+                        </form>
+                      <% } else { %>
+                        <form action="/alunos/<%= a.id %>/reativar" method="post" onsubmit="return confirm('Reativar este aluno?')">
+                          <button type="submit" class="btn btn-sm btn-success">Reativar</button>
+                        </form>
+                      <% } %>
+                    <% } %>
+                  </div>
+                </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/shell-end') %>

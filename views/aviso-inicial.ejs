@@ -1,0 +1,34 @@
+<%- include('partials/shell-start') %>
+
+<div class="card" style="max-width:960px;margin:0 auto">
+  <div class="card-header">
+    <h3>Aviso Importante</h3>
+  </div>
+  <div class="card-body">
+    <div class="mensagem-card is-unread" style="border-left-width:6px">
+      <div class="mensagem-corpo" style="font-size:1rem">
+Prezados membros da Direção, Coordenação e Professores,
+
+Sejam bem-vindos ao sistema de lançamento de presença, desenvolvido com o objetivo de facilitar a rotina dos professores e tornar o processo mais ágil e confiável.
+
+Reforçamos que os lançamentos devem ser feitos exclusivamente pelos professores que ministram aulas no 1º e 6º horário, garantindo a padronização e a integridade das informações.
+
+É fundamental que os registros sejam realizados diariamente, sem falhas, pois o sistema transfere automaticamente os dados para o Sistema Presença, responsável pelo controle do Programa Bolsa Família. Este programa é de grande relevância para muitas famílias, e a precisão das informações é essencial para assegurar que os benefícios sejam mantidos.
+
+Contamos com a seriedade e o comprometimento de todos para que este processo seja cumprido com rigor e responsabilidade, fortalecendo a gestão escolar e apoiando diretamente nossas comunidades.
+
+Atenciosamente.
+      </div>
+    </div>
+
+    <div class="alert alert-warning" style="margin-top:1rem">
+      Este aviso será exibido apenas uma única vez para cada usuário.
+    </div>
+
+    <form method="post" action="/aviso-inicial/confirmar" style="margin-top:1.25rem;display:flex;justify-content:flex-end">
+      <button type="submit" class="btn btn-primary">Li e estou ciente</button>
+    </form>
+  </div>
+</div>
+
+<%- include('partials/shell-end') %>

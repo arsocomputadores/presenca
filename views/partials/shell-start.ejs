@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= titulo %> | Presença Escolar</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <img src="/img/logo.png" alt="Logo CEF 411" style="width: 80px; margin-bottom: 1rem; display: block; margin-left: auto; margin-right: auto;">
+        <h1>CEF 411</h1>
+        <span>Samambaia - DF</span>
+      </div>
+      <nav>
+        <a href="/" class="<%= titulo === 'Painel' ? 'active' : '' %>">Painel</a>
+        <% if (usuario && (usuario.perfil === 'admin' || usuario.perfil === 'professor')) { %>
+          <a href="/frequencia" class="<%= titulo === 'Lançar frequência' ? 'active' : '' %>">Frequência</a>
+        <% } %>
+
+        <% if (usuario && usuario.perfil === 'direcao') { %>
+          <a href="/alunos" class="<%= titulo === 'Alunos' ? 'active' : '' %>">Consulta de alunos</a>
+          <a href="/relatorios" class="<%= titulo === 'Relatórios de Lançamentos' ? 'active' : '' %>">Relatórios Diários</a>
+          <a href="/relatorios/frequencia" class="<%= titulo === 'Relatório de Frequência por Turma' ? 'active' : '' %>">Relatório Mensal</a>
+        <% } else if (usuario && usuario.perfil === 'coordenacao') { %>
+          <a href="/alunos" class="<%= titulo === 'Alunos' ? 'active' : '' %>">Consulta de alunos</a>
+          <a href="/relatorios" class="<%= titulo === 'Relatórios de Lançamentos' ? 'active' : '' %>">Relatórios Diários</a>
+          <a href="/relatorios/frequencia" class="<%= titulo === 'Relatório de Frequência por Turma' ? 'active' : '' %>">Relatório Mensal</a>
+          <a href="/calendario" class="<%= titulo === 'Calendário Escolar' ? 'active' : '' %>">Calendário</a>
+        <% } else if (usuario && usuario.perfil === 'admin') { %>
+          <a href="/alunos" class="<%= titulo === 'Alunos' || titulo === 'Novo aluno' || titulo === 'Transferir aluno' ? 'active' : '' %>">Alunos</a>
+          <a href="/turmas" class="<%= titulo === 'Turmas' ? 'active' : '' %>">Turmas</a>
+          <a href="/projetos" class="<%= titulo.startsWith('Projeto') ? 'active' : '' %>">Projetos</a>
+          <a href="/relatorios" class="<%= titulo === 'Relatórios de Lançamentos' ? 'active' : '' %>">Relatórios Diários</a>
+          <a href="/relatorios/frequencia" class="<%= titulo === 'Relatório de Frequência por Turma' ? 'active' : '' %>">Relatório Mensal</a>
+          <a href="/calendario" class="<%= titulo === 'Calendário Escolar' ? 'active' : '' %>">Calendário</a>
+          <a href="/usuarios" class="<%= titulo === 'Usuários' ? 'active' : '' %>">Usuários</a>
+          <a href="/banco" class="<%= titulo === 'Estrutura do banco' ? 'active' : '' %>">Banco de dados</a>
+        <% } %>
+        <% if (usuario) { %>
+          <a href="/mensagens" class="<%= titulo === 'Mensagens' || titulo === 'Nova mensagem' ? 'active' : '' %>">
+            Mensagens
+            <% if (mensagensNaoLidas > 0) { %>
+              <span class="nav-badge"><%= mensagensNaoLidas %></span>
+            <% } %>
+          </a>
+        <% } %>
+        <a href="/logout" class="no-print" style="color: var(--danger); font-weight: bold;">Sair</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-name"><%= usuario.nome %></div>
+        <div><%= usuario.perfil %></div>
+        <form action="/logout" method="post" style="margin-top:0.75rem">
+          <button type="submit" class="btn btn-sm btn-secondary" style="width:100%">Sair</button>
+        </form>
+      </div>
+    </aside>
+    <div class="main-content">
+      <header class="topbar">
+        <h2><%= titulo %></h2>
+      </header>
+      <main class="page-content">

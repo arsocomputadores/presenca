@@ -1,0 +1,66 @@
+<%- include('../partials/shell-start') %>
+
+<div class="alert alert-info">
+  Use esta página para validar se o banco de dados cobre tudo que a interface precisa.
+  Itens em <strong>amarelo</strong> são campos ou tabelas que podem ser necessários ao expandir o sistema.
+</div>
+
+<div class="card">
+  <div class="card-header"><h3>Tabelas existentes no schema</h3></div>
+  <div class="card-body">
+    <div class="db-table-list">
+      <div class="db-table-item">
+        <h4>alunos</h4>
+        <p>codigo (8 dígitos), nome, data_nascimento, ativo</p>
+        <div class="db-gap">Considerar: nome_mae, cpf, telefone_responsavel, foto</div>
+      </div>
+      <div class="db-table-item">
+        <h4>matriculas</h4>
+        <p>Histórico de turmas, transferências, motivo_saida</p>
+      </div>
+      <div class="db-table-item">
+        <h4>turmas</h4>
+        <p>nome, serie, turno, ano_letivo, professor_responsavel</p>
+        <div class="db-gap">Considerar: sala, capacidade_maxima</div>
+      </div>
+      <div class="db-table-item">
+        <h4>frequencias</h4>
+        <p>status P/F/J, observacao, lancado_por, data</p>
+        <div class="db-gap">Considerar: horario_aula, disciplina_id (se frequência for por matéria)</div>
+      </div>
+      <div class="db-table-item">
+        <h4>projetos / projeto_alunos</h4>
+        <p>Seleção de alunos para monitoramento mensal</p>
+      </div>
+      <div class="db-table-item">
+        <h4>calendario_escolar</h4>
+        <p>Dias letivos, feriados — usado para calcular % sobre dias úteis</p>
+        <div class="db-gap">A interface de calendário ainda não foi criada</div>
+      </div>
+      <div class="db-table-item">
+        <h4>usuarios / usuario_turmas</h4>
+        <p>Login, perfis (admin, coordenação, professor)</p>
+      </div>
+      <div class="db-table-item">
+        <h4>auditoria</h4>
+        <p>Log de alterações — recomendado em produção</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:1.5rem">
+  <div class="card-header"><h3>O que a interface revelou como possível necessidade</h3></div>
+  <div class="card-body">
+    <ul>
+      <li><strong>Tela de cadastro de turmas</strong> — hoje só listagem; falta CRUD de turmas no banco</li>
+      <li><strong>Tela de usuários/professores</strong> — vincular professor à turma (<code>usuario_turmas</code>)</li>
+      <li><strong>Calendário escolar</strong> — cadastro de feriados para relatório preciso</li>
+      <li><strong>CRUD de projetos</strong> — criar/editar projetos pela interface</li>
+      <li><strong>Exportação Excel/PDF</strong> — relatório mensal (campo extra não exige tabela)</li>
+      <li><strong>Histórico de matrículas</strong> — tela para consultar transferências passadas</li>
+    </ul>
+  </div>
+</div>
+
+<%- include('../partials/shell-end') %>

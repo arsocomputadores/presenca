@@ -1,0 +1,75 @@
+<%- include('../partials/shell-start') %>
+
+<% if (typeof sucesso !== 'undefined' && sucesso) { %><div class="alert alert-success"><%= sucesso %></div><% } %>
+<% if (typeof erro !== 'undefined' && erro) { %><div class="alert alert-error"><%= erro %></div><% } %>
+
+<div class="card">
+  <div class="card-header">
+    <h3>Relatórios de Lançamentos Diários</h3>
+  </div>
+  <div class="card-body">
+    <div style="display:flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+      <form method="get" action="/relatorios" class="form-grid" style="margin-bottom:0">
+        <div class="form-group" style="margin-bottom:0">
+          <label for="data">Data de referência</label>
+          <div style="display:flex; gap:0.5rem">
+            <input type="date" name="data" id="data" value="<%= data %>" class="form-control">
+            <button type="submit" class="btn btn-primary">Filtrar</button>
+          </div>
+        </div>
+      </form>
+      
+      <a href="/relatorios/exportar/excel?data=<%= data %>" class="btn btn-secondary no-print">
+         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="vertical-align: middle; margin-right: 0.25rem;">
+           <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"/>
+           <path d="M4.5 12.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5z"/>
+         </svg>
+         Exportar Excel
+       </a>
+       <button onclick="window.print()" class="btn btn-outline no-print">
+         Imprimir PDF
+       </button>
+      <% if (usuario && usuario.perfil === 'admin') { %>
+        <form action="/frequencias/limpar" method="post" class="no-print" style="margin:0"
+          onsubmit="return confirm('Tem certeza que deseja LIMPAR TODO o histórico de frequência?\\n\\nIsso vai apagar todos os registros já lançados (P/F/J) de todas as turmas, datas e horários.');">
+          <button type="submit" class="btn btn-danger">Limpar histórico</button>
+        </form>
+      <% } %>
+     </div>
+
+    <% if (lancamentos.length === 0) { %>
+      <div class="alert alert-warning" style="margin-top: 1rem;">
+        Nenhum lançamento de frequência encontrado para o dia <%= formatarData(data) %>.
+      </div>
+    <% } else { %>
+      <div class="table-wrap" style="margin-top: 1.5rem;">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Turma</th>
+              <th>Turno</th>
+              <th>Horário</th>
+              <th>Lançado por</th>
+              <th>Data/Hora do Registro</th>
+              <th>Total de Alunos</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% lancamentos.forEach(function(l) { %>
+              <tr>
+                <td data-label="Turma"><strong><%= l.turma_nome %></strong></td>
+                <td data-label="Turno"><%= formatarTurno(l.turno) %></td>
+                <td data-label="Horário"><span class="badge badge-info"><%= l.horario %>º Horário</span></td>
+                <td data-label="Lançado por"><%= l.lancado_por %></td>
+                <td data-label="Data/Hora do Registro"><%= new Date(l.data_lancamento).toLocaleString('pt-BR') %></td>
+                <td data-label="Total de Alunos"><%= l.total_registros %> alunos</td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<%- include('../partials/shell-end') %>

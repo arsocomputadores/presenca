@@ -1,0 +1,214 @@
+{
+  "usuarios": [
+    {
+      "id": 1,
+      "nome": "Administrador",
+      "cpf": "00000000001",
+      "perfil": "admin",
+      "ativo": 1,
+      "aviso_inicial_lido_em": null
+    },
+    {
+      "id": 2,
+      "nome": "Maria Professora",
+      "cpf": "00000000002",
+      "perfil": "professor",
+      "ativo": 1,
+      "aviso_inicial_lido_em": null,
+      "turmas": [
+        1,
+        2
+      ]
+    },
+    {
+      "id": 3,
+      "nome": "João Coordenação",
+      "cpf": "00000000003",
+      "perfil": "coordenacao",
+      "ativo": 1,
+      "aviso_inicial_lido_em": null
+    }
+  ],
+  "turmas": [
+    {
+      "id": 1,
+      "nome": "6º A",
+      "serie": "6º ano",
+      "turno": "manha",
+      "ano_letivo": 2026,
+      "ativa": 1,
+      "total_alunos": 1
+    },
+    {
+      "id": 2,
+      "nome": "6º B",
+      "serie": "6º ano",
+      "turno": "manha",
+      "ano_letivo": 2026,
+      "ativa": 1,
+      "total_alunos": 2
+    },
+    {
+      "id": 3,
+      "nome": "7º A",
+      "serie": "7º ano",
+      "turno": "tarde",
+      "ano_letivo": 2026,
+      "ativa": 1,
+      "total_alunos": 1
+    },
+    {
+      "id": 4,
+      "nome": "7º B",
+      "serie": "7º ano",
+      "turno": "tarde",
+      "ano_letivo": 2026,
+      "ativa": 1,
+      "total_alunos": 0
+    },
+    {
+      "id": 5,
+      "nome": "8º A",
+      "serie": "8º ano",
+      "turno": "manha",
+      "ano_letivo": 2026,
+      "ativa": 1,
+      "total_alunos": 0
+    },
+    {
+      "id": 6,
+      "nome": "9º A",
+      "serie": "9º ano",
+      "turno": "tarde",
+      "ano_letivo": 2026,
+      "ativa": 1,
+      "total_alunos": 0
+    }
+  ],
+  "alunos": [
+    {
+      "id": 1,
+      "codigo": "1001",
+      "nome": "Ana Silva Santos",
+      "data_nascimento": "2012-03-15",
+      "ativo": 0,
+      "turma_id": null,
+      "turma_nome": null
+    },
+    {
+      "id": 2,
+      "codigo": "1002",
+      "nome": "Bruno Oliveira Costa",
+      "data_nascimento": "2012-07-22",
+      "ativo": 1,
+      "turma_id": 1,
+      "turma_nome": "6º A"
+    },
+    {
+      "id": 3,
+      "codigo": "1003",
+      "nome": "Carla Mendes Pereira",
+      "data_nascimento": "2011-11-08",
+      "ativo": 1,
+      "turma_id": 2,
+      "turma_nome": "6º B"
+    },
+    {
+      "id": 4,
+      "codigo": "2045",
+      "nome": "Daniel Ferreira Lima",
+      "data_nascimento": "2011-05-20",
+      "ativo": 1,
+      "turma_id": 2,
+      "turma_nome": "6º B"
+    },
+    {
+      "id": 5,
+      "codigo": "3050",
+      "nome": "Elena Souza Rocha",
+      "data_nascimento": "2010-09-12",
+      "ativo": 1,
+      "turma_id": 3,
+      "turma_nome": "7º A"
+    },
+    {
+      "id": 6,
+      "codigo": "12345678",
+      "nome": "Felipe Alves Nunes",
+      "data_nascimento": "2010-01-01",
+      "ativo": 0,
+      "turma_id": null,
+      "turma_nome": null
+    }
+  ],
+  "projetos": [
+    {
+      "id": 1,
+      "nome": "Projeto Leitura",
+      "descricao": "Monitoramento de frequência — leitura compartilhada",
+      "data_inicio": "2026-02-01",
+      "data_fim": null,
+      "ativo": 1,
+      "total_alunos": 3
+    },
+    {
+      "id": 2,
+      "nome": "Reforço Matemática",
+      "descricao": "Acompanhamento de presença no reforço",
+      "data_inicio": "2026-03-01",
+      "data_fim": "2026-12-15",
+      "ativo": 1,
+      "total_alunos": 2
+    }
+  ],
+  "projeto_alunos": [
+    {
+      "projeto_id": 1,
+      "aluno_id": 1
+    },
+    {
+      "projeto_id": 1,
+      "aluno_id": 2
+    },
+    {
+      "projeto_id": 1,
+      "aluno_id": 3
+    },
+    {
+      "projeto_id": 2,
+      "aluno_id": 4
+    },
+    {
+      "projeto_id": 2,
+      "aluno_id": 5
+    }
+  ],
+  "frequencias": [
+    {
+      "aluno_id": 1,
+      "turma_id": 1,
+      "data": "2026-06-02",
+      "status": "P"
+    },
+    {
+      "aluno_id": 2,
+      "turma_id": 1,
+      "data": "2026-06-02",
+      "status": "F"
+    },
+    {
+      "aluno_id": 1,
+      "turma_id": 1,
+      "data": "2026-06-03",
+      "status": "P"
+    },
+    {
+      "aluno_id": 2,
+      "turma_id": 1,
+      "data": "2026-06-03",
+      "status": "J"
+    }
+  ],
+  "mensagens": [],
+  "mensagem_destinatarios": []
+}

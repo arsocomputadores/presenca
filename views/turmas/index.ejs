@@ -1,0 +1,102 @@
+<%- include('../partials/shell-start') %>
+
+<div class="card-header" style="margin-bottom: 1rem;">
+  <h3>Turmas</h3>
+  <% if (usuario.perfil === 'admin') { %>
+    <a href="/turmas/nova" class="btn btn-primary">Nova Turma</a>
+  <% } %>
+</div>
+
+<% if (modoDemo) { %>
+<div class="alert alert-info">
+  Sua escola possui <strong>34 turmas</strong>. Abaixo estão <%= turmas.length %> turmas de demonstração.
+  Ao conectar o MySQL, todas as 34 serão carregadas do banco.
+</div>
+<% } %>
+
+<% 
+  const bloco1 = turmas.filter(t => t.serie.includes('6') || t.serie.includes('7'));
+  const bloco2 = turmas.filter(t => t.serie.includes('8') || t.serie.includes('9'));
+  const outros = turmas.filter(t => !bloco1.find(b => b.id === t.id) && !bloco2.find(b => b.id === t.id));
+
+  function renderTurmas(lista) { 
+    if (lista.length === 0) return '';
+    %>
+    <div class="turmas-grid">
+      <% lista.forEach(function(t) { %>
+        <div class="turma-card <%= t.definitiva ? 'definitiva' : '' %>">
+          <h4>
+            <%= t.nome %>
+            <% if (t.definitiva) { %>
+              <span class="badge badge-success" style="font-size: 0.6rem; vertical-align: middle;">Definitiva</span>
+            <% } %>
+          </h4>
+          <div class="meta"><%= t.serie %> · <%= formatarTurno(t.turno) %> · <%= t.ano_letivo %></div>
+          <div class="count"><%= t.total_alunos || 0 %> alunos</div>
+          <div class="turma-actions">
+            <a href="/frequencia?turma_id=<%= t.id %>" class="btn btn-sm btn-primary">Lançar frequência</a>
+            <% if (usuario.perfil === 'admin') { %>
+              <a href="/turmas/<%= t.id %>/editar" class="btn btn-sm btn-secondary">Editar</a>
+              <form action="/turmas/<%= t.id %>/definitiva" method="post" style="display:inline">
+                <input type="hidden" name="status" value="<%= t.definitiva ? '0' : '1' %>">
+                <button type="submit" class="btn btn-sm <%= t.definitiva ? 'btn-outline' : 'btn-warning' %>">
+                  <%= t.definitiva ? 'Remover Definitiva' : 'Deixar Definitiva' %>
+                </button>
+              </form>
+            <% } %>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+    <% 
+  } 
+%>
+
+<div class="folders-container">
+  <% if (bloco1.length > 0) { %>
+    <details class="folder-section">
+      <summary class="folder-header">
+        <div class="folder-title">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="folder-icon"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"></path></svg>
+          <span>3º Ciclo - Bloco 1 <small>(6º e 7º anos)</small></span>
+        </div>
+        <div class="folder-badge"><%= bloco1.length %> turmas</div>
+      </summary>
+      <div class="folder-content">
+        <% renderTurmas(bloco1) %>
+      </div>
+    </details>
+  <% } %>
+
+  <% if (bloco2.length > 0) { %>
+    <details class="folder-section">
+      <summary class="folder-header">
+        <div class="folder-title">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="folder-icon"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"></path></svg>
+          <span>3º Ciclo - Bloco 2 <small>(8º e 9º anos)</small></span>
+        </div>
+        <div class="folder-badge"><%= bloco2.length %> turmas</div>
+      </summary>
+      <div class="folder-content">
+        <% renderTurmas(bloco2) %>
+      </div>
+    </details>
+  <% } %>
+
+  <% if (outros.length > 0) { %>
+    <details class="folder-section">
+      <summary class="folder-header">
+        <div class="folder-title">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="folder-icon"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"></path></svg>
+          <span>Outras Turmas</span>
+        </div>
+        <div class="folder-badge"><%= outros.length %> turmas</div>
+      </summary>
+      <div class="folder-content">
+        <% renderTurmas(outros) %>
+      </div>
+    </details>
+  <% } %>
+</div>
+
+<%- include('../partials/shell-end') %>

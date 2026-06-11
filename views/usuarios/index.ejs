@@ -1,0 +1,59 @@
+<%- include('../partials/shell-start') %>
+
+<% if (typeof sucesso !== 'undefined' && sucesso) { %><div class="alert alert-success"><%= sucesso %></div><% } %>
+<% if (typeof erro !== 'undefined' && erro) { %><div class="alert alert-error"><%= erro %></div><% } %>
+
+<div class="card-header" style="margin-bottom: 1rem;">
+  <h3>Usuários / Professores</h3>
+  <% if (usuario.perfil === 'admin') { %>
+    <a href="/usuarios/novo" class="btn btn-primary">Novo Usuário</a>
+  <% } %>
+</div>
+
+<div class="card">
+  <div class="card-body" style="padding:0">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>CPF</th>
+          <th>Perfil</th>
+          <th>Status</th>
+          <th>Turmas Vinculadas</th>
+          <th style="width:180px">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% usuarios.forEach(function(u) { %>
+          <tr>
+            <td><strong><%= u.nome %></strong></td>
+            <td><%= u.cpf %></td>
+            <td><span class="badge badge-<%= u.perfil === 'admin' ? 'error' : (u.perfil === 'coordenacao' ? 'warning' : 'info') %>"><%= u.perfil %></span></td>
+            <td><span class="badge badge-<%= u.ativo ? 'success' : 'secondary' %>"><%= u.ativo ? 'Ativo' : 'Inativo' %></span></td>
+            <td>
+              <% if (u.turmas_nomes) { %>
+                <%= u.turmas_nomes %>
+              <% } else { %>
+                <span class="text-muted">Nenhuma</span>
+              <% } %>
+            </td>
+            <td>
+              <% if (usuario.perfil === 'admin') { %>
+                <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+                  <a href="/usuarios/<%= u.id %>/editar" class="btn btn-sm btn-secondary">Editar</a>
+                  <% if (u.id !== usuario.id) { %>
+                    <form action="/usuarios/<%= u.id %>/excluir" method="post" style="display:inline" onsubmit="return confirm('Excluir este usuário? Ele ficará inativo e não conseguirá mais acessar o sistema.');">
+                      <button type="submit" class="btn btn-sm btn-danger" <%= u.ativo ? '' : 'disabled' %>>Excluir</button>
+                    </form>
+                  <% } %>
+                </div>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<%- include('../partials/shell-end') %>

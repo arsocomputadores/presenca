@@ -1,0 +1,79 @@
+<%- include('../partials/shell-start') %>
+
+<div class="card" style="max-width:980px">
+  <div class="card-header">
+    <h3>Nova mensagem interna</h3>
+    <a href="/mensagens" class="btn btn-sm btn-outline">Voltar</a>
+  </div>
+  <div class="card-body">
+    <% if (erro) { %><div class="alert alert-error"><%= erro %></div><% } %>
+
+    <form method="post" action="/mensagens">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="titulo">Título *</label>
+          <input type="text" id="titulo" name="titulo" required value="<%= mensagem_edit && mensagem_edit.titulo ? mensagem_edit.titulo : '' %>">
+        </div>
+        <div class="form-group">
+          <label for="tipo_destino">Enviar para *</label>
+          <select id="tipo_destino" name="tipo_destino" required onchange="toggleDestinoMensagem()">
+            <option value="todos" <%= mensagem_edit && mensagem_edit.tipo_destino === 'todos' ? 'selected' : '' %>>Todos os usuários</option>
+            <option value="perfil" <%= mensagem_edit && mensagem_edit.tipo_destino === 'perfil' ? 'selected' : '' %>>Um perfil</option>
+            <option value="usuarios" <%= mensagem_edit && mensagem_edit.tipo_destino === 'usuarios' ? 'selected' : '' %>>Usuários específicos</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group" id="perfil-destino-wrap" style="display:none">
+        <label for="perfil_destino">Perfil destinatário</label>
+        <select id="perfil_destino" name="perfil_destino">
+          <option value="">Selecione</option>
+          <option value="professor" <%= mensagem_edit && mensagem_edit.perfil_destino === 'professor' ? 'selected' : '' %>>Professor</option>
+          <option value="coordenacao" <%= mensagem_edit && mensagem_edit.perfil_destino === 'coordenacao' ? 'selected' : '' %>>Coordenação</option>
+          <option value="direcao" <%= mensagem_edit && mensagem_edit.perfil_destino === 'direcao' ? 'selected' : '' %>>Direção</option>
+          <option value="admin" <%= mensagem_edit && mensagem_edit.perfil_destino === 'admin' ? 'selected' : '' %>>Administrador</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="usuarios-destino-wrap" style="display:none">
+        <label>Usuários destinatários</label>
+        <div class="turmas-grid" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));">
+          <% usuariosDestino.forEach(function(u) { %>
+            <label style="display:flex; gap:0.5rem; align-items:flex-start; background:#f8f9fa; padding:0.75rem; border-radius:8px; cursor:pointer;">
+              <input type="checkbox" name="usuario_ids" value="<%= u.id %>"
+                <%= mensagem_edit && mensagem_edit.usuario_ids && (Array.isArray(mensagem_edit.usuario_ids) ? mensagem_edit.usuario_ids.map(String).includes(String(u.id)) : [String(mensagem_edit.usuario_ids)].includes(String(u.id))) ? 'checked' : '' %>>
+              <span>
+                <strong><%= u.nome %></strong><br>
+                <small style="color:var(--muted)"><%= u.perfil %></small>
+              </span>
+            </label>
+          <% }) %>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="corpo">Mensagem *</label>
+        <textarea id="corpo" name="corpo" rows="8" required><%= mensagem_edit && mensagem_edit.corpo ? mensagem_edit.corpo : '' %></textarea>
+      </div>
+
+      <div style="margin-top:1.25rem;display:flex;gap:0.75rem;flex-wrap:wrap">
+        <button type="submit" class="btn btn-primary">Enviar mensagem</button>
+        <a href="/mensagens" class="btn btn-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function toggleDestinoMensagem() {
+    const tipo = document.getElementById('tipo_destino')?.value;
+    const perfilWrap = document.getElementById('perfil-destino-wrap');
+    const usuariosWrap = document.getElementById('usuarios-destino-wrap');
+    if (!perfilWrap || !usuariosWrap) return;
+    perfilWrap.style.display = tipo === 'perfil' ? 'block' : 'none';
+    usuariosWrap.style.display = tipo === 'usuarios' ? 'block' : 'none';
+  }
+  document.addEventListener('DOMContentLoaded', toggleDestinoMensagem);
+</script>
+
+<%- include('../partials/shell-end') %>

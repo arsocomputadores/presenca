@@ -1,0 +1,44 @@
+<%- include('../partials/shell-start') %>
+
+<div class="card" style="max-width:640px">
+  <div class="card-header">
+    <h3><%= turma ? 'Editar' : 'Nova' %> turma</h3>
+    <a href="/turmas" class="btn btn-sm btn-outline">Voltar</a>
+  </div>
+  <div class="card-body">
+    <% if (erro) { %><div class="alert alert-error"><%= erro %></div><% } %>
+
+    <form method="post" action="<%= turma ? '/turmas/' + turma.id : '/turmas' %>">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="nome">Nome da turma *</label>
+          <input type="text" id="nome" name="nome" required placeholder="Ex: 6º A" value="<%= turma ? turma.nome : '' %>">
+        </div>
+        <div class="form-group">
+          <label for="serie">Série *</label>
+          <input type="text" id="serie" name="serie" required placeholder="Ex: 6º ano" value="<%= turma ? turma.serie : '' %>">
+        </div>
+        <div class="form-group">
+          <label for="turno">Turno *</label>
+          <select id="turno" name="turno" required>
+            <option value="matutino" <%= turma && turma.turno === 'matutino' ? 'selected' : '' %>>Matutino</option>
+            <option value="vespertino" <%= turma && turma.turno === 'vespertino' ? 'selected' : '' %>>Vespertino</option>
+            <option value="noturno" <%= turma && turma.turno === 'noturno' ? 'selected' : '' %>>Noturno</option>
+            <option value="integral" <%= turma && turma.turno === 'integral' ? 'selected' : '' %>>Integral</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="ano_letivo">Ano Letivo *</label>
+          <input type="number" id="ano_letivo" name="ano_letivo" required value="<%= turma ? turma.ano_letivo : new Date().getFullYear() %>">
+        </div>
+      </div>
+
+      <div style="margin-top:1.25rem;display:flex;gap:0.75rem">
+        <button type="submit" class="btn btn-primary">Salvar turma</button>
+        <a href="/turmas" class="btn btn-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<%- include('../partials/shell-end') %>

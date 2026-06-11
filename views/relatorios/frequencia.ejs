@@ -1,0 +1,95 @@
+<%- include('../partials/shell-start') %>
+
+<div class="card">
+  <div class="card-header">
+    <h3>Frequência Mensal por Turma</h3>
+  </div>
+  <div class="card-body">
+    <form method="get" action="/relatorios/frequencia" class="form-grid no-print" style="margin-bottom: 2rem;">
+      <div class="form-group">
+        <label for="turma_id">Turma</label>
+        <select name="turma_id" id="turma_id">
+          <% turmas.forEach(function(t) { %>
+            <option value="<%= t.id %>" <%= turmaId == t.id ? 'selected' : '' %>><%= t.nome %> — <%= t.serie %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="mes">Mês</label>
+        <select name="mes" id="mes">
+          <% const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'] %>
+          <% meses.forEach((m, i) => { %>
+            <option value="<%= i + 1 %>" <%= mes == (i + 1) ? 'selected' : '' %>><%= m %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="ano">Ano</label>
+        <select name="ano" id="ano">
+          <% for(let a = 2024; a <= new Date().getFullYear(); a++) { %>
+            <option value="<%= a %>" <%= ano == a ? 'selected' : '' %>><%= a %></option>
+          <% } %>
+        </select>
+      </div>
+      <div style="display:flex; align-items:flex-end; gap:0.5rem">
+        <button type="submit" class="btn btn-primary">Gerar Relatório</button>
+        <% if (turmaId) { %>
+          <a href="/relatorios/frequencia/exportar?turma_id=<%= turmaId %>&mes=<%= mes %>&ano=<%= ano %>" class="btn btn-secondary">Excel</a>
+          <button onclick="window.print()" class="btn btn-outline">PDF</button>
+        <% } %>
+      </div>
+    </form>
+
+    <% if (turmaSelecionada) { %>
+      <div class="report-header" style="margin-bottom: 1.5rem; text-align: center;">
+        <h2 style="color: var(--primary-dark); margin: 0;">Relatório de Frequência</h2>
+        <div style="font-size: 1.1rem; color: var(--text-muted);">
+          Turma: <strong><%= turmaSelecionada.nome %></strong> | 
+          Período: <strong><%= meses[mes-1] %> / <%= ano %></strong>
+        </div>
+      </div>
+
+      <% if (dados.length === 0) { %>
+        <p style="text-align: center; color: var(--text-muted); padding: 2rem;">Nenhum dado encontrado para esta turma no período selecionado.</p>
+      <% } else { %>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Nome do Aluno</th>
+                <th style="text-align: center;">Presenças</th>
+                <th style="text-align: center;">Faltas</th>
+                <th style="text-align: center;">Justif.</th>
+                <th style="text-align: center;">% Freq.</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% dados.forEach(function(d) { %>
+                <% 
+                  const total = d.presencas + d.faltas + d.justificadas;
+                  const pct = total > 0 ? Math.round((d.presencas / total) * 100) : 100;
+                  let colorClass = 'success';
+                  if (pct < 75) colorClass = 'danger';
+                  else if (pct < 85) colorClass = 'warning';
+                %>
+                <tr>
+                  <td class="codigo-cell" data-label="Código"><%= d.codigo %></td>
+                  <td data-label="Nome do Aluno"><%= d.aluno_nome %></td>
+                  <td style="text-align: center;" data-label="Presenças"><%= d.presencas %></td>
+                  <td style="text-align: center; color: var(--danger); font-weight: bold;" data-label="Faltas"><%= d.faltas %></td>
+                  <td style="text-align: center;" data-label="Justif."><%= d.justificadas %></td>
+                  <td style="text-align: center;" data-label="% Freq.">
+                    <span class="badge badge-<%= colorClass %>"><%= pct %>%</span>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    <% } %>
+  </div>
+</div>
+
+<%- include('../partials/shell-end') %>

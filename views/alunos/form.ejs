@@ -1,0 +1,59 @@
+<%- include('../partials/shell-start') %>
+
+<div class="card" style="max-width:640px">
+  <div class="card-header">
+    <h3><%= aluno && aluno.id ? 'Editar aluno' : 'Cadastrar novo aluno' %></h3>
+    <a href="/alunos" class="btn btn-sm btn-outline">Voltar</a>
+  </div>
+  <div class="card-body">
+    <% if (erro) { %><div class="alert alert-error"><%= erro %></div><% } %>
+
+    <form method="post" action="<%= aluno && aluno.id ? '/alunos/' + aluno.id : '/alunos' %>">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="codigo">Código do aluno *</label>
+          <% if (aluno && aluno.id) { %>
+            <input type="hidden" name="codigo_original" value="<%= aluno.codigo || '' %>">
+          <% } %>
+          <input type="text" id="codigo" name="codigo" required maxlength="8" pattern="[0-9]{1,8}"
+                 placeholder="Ex: 1001" value="<%= aluno ? (aluno.codigo_formatado || aluno.codigo) : '' %>">
+          <span class="form-hint">Número de até 8 dígitos (exibido antes do nome)</span>
+        </div>
+        <div class="form-group">
+          <label for="nome">Nome completo *</label>
+          <input type="text" id="nome" name="nome" required value="<%= aluno ? aluno.nome : '' %>">
+        </div>
+        <div class="form-group">
+          <label for="data_nascimento">Data de nascimento</label>
+          <input type="date" id="data_nascimento" name="data_nascimento" value="<%= aluno ? aluno.data_nascimento : '' %>">
+        </div>
+        <div class="form-group">
+          <label for="turma_id">Turma *</label>
+          <select id="turma_id" name="turma_id" required>
+            <option value="">Selecione...</option>
+            <% turmas.forEach(function(t) { %>
+              <option value="<%= t.id %>" <%= aluno && aluno.turma_id == t.id ? 'selected' : '' %>><%= t.nome %> — <%= t.serie %></option>
+            <% }) %>
+          </select>
+        </div>
+        <% if (!aluno || !aluno.id) { %>
+          <div class="form-group">
+            <label for="data_matricula">Data da matrícula</label>
+            <input type="date" id="data_matricula" name="data_matricula" value="<%= new Date().toISOString().slice(0,10) %>">
+          </div>
+        <% } %>
+      </div>
+
+      <div style="margin-top:1.25rem;display:flex;gap:0.75rem">
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <a href="/alunos" class="btn btn-secondary">Cancelar</a>
+      </div>
+    </form>
+
+    <div class="alert alert-info" style="margin-top:1.25rem;margin-bottom:0">
+      <strong>Prévia:</strong> <span id="preview-codigo-nome"><%= aluno ? ((aluno.codigo_formatado || aluno.codigo) + ' - ' + aluno.nome) : '0 - Nome do aluno' %></span>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/shell-end') %>
