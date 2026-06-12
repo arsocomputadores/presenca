@@ -59,39 +59,62 @@
 <div class="project-students-grid">
   
   <!-- Coluna 1: Alunos Participantes -->
-  <div class="card project-students-card">
+  <div class="card project-students-card" id="alunos-no-projeto">
     <div class="card-header">
-      <h4>Alunos no Projeto (<%= alunosProjeto.length %>)</h4>
+      <h4>Alunos no Projeto (<%= paginacaoProjeto.total %>)</h4>
     </div>
     <div class="card-body project-students-card-body">
-      <% if (alunosProjeto.length === 0) { %>
+      <% if (paginacaoProjeto.total === 0) { %>
         <p class="text-muted">Nenhum aluno inserido neste projeto ainda.</p>
       <% } else { %>
-        <div class="table-wrap">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Código</th>
-                <th>Nome</th>
-                <th style="width: 80px">Ação</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% alunosProjeto.forEach(function(a) { %>
-                <tr>
-                  <td><%= a.codigo_formatado %></td>
-                  <td><%= a.nome %></td>
-                  <td>
-                    <form action="/projetos/<%= projeto.id %>/alunos/remover" method="post" onsubmit="return confirm('Excluir aluno do projeto?')">
-                      <input type="hidden" name="aluno_id" value="<%= a.id %>">
-                      <button type="submit" class="btn btn-sm btn-danger">Excluir</button>
-                    </form>
-                  </td>
-                </tr>
-              <% }) %>
-            </tbody>
-          </table>
+        <div class="aluno-check-list project-student-list" id="project-student-list">
+          <% gruposProjeto.forEach(function(grupo) { %>
+            <div class="project-letter-divider"><%= grupo.letra %></div>
+            <% grupo.alunos.forEach(function(a) { %>
+              <div class="aluno-check-item project-student-item">
+                <div>
+                  <span class="codigo-cell" style="font-weight: bold;"><%= a.codigo_formatado %></span>
+                  <span class="nome-cell"><%= a.nome %></span>
+                </div>
+                <form action="/projetos/<%= projeto.id %>/alunos/remover" method="post" onsubmit="return confirm('Excluir aluno do projeto?')" class="js-preserve-project-position">
+                  <input type="hidden" name="aluno_id" value="<%= a.id %>">
+                  <input type="hidden" name="periodo" value="<%= periodo %>">
+                  <input type="hidden" name="page_projeto" value="<%= paginacaoProjeto.page %>">
+                  <input type="hidden" name="page_disponiveis" value="<%= paginacaoDisponiveis.page %>">
+                  <button type="submit" class="btn btn-sm btn-danger">Excluir</button>
+                </form>
+              </div>
+            <% }) %>
+          <% }) %>
         </div>
+
+        <% if (paginacaoProjeto.total_pages > 1) { %>
+          <% const qsProjetoPrefix = queryProjetoBase && queryProjetoBase.length ? (queryProjetoBase + '&') : ''; %>
+          <div class="project-pagination">
+            <div class="project-pagination-summary">
+              Página <%= paginacaoProjeto.page %> de <%= paginacaoProjeto.total_pages %>
+            </div>
+            <div class="project-pagination-actions">
+              <% if (paginacaoProjeto.page > 1) { %>
+                <a class="btn btn-sm btn-secondary project-project-page-link" href="/projetos/<%= projeto.id %>/alunos?<%= qsProjetoPrefix %>page_projeto=<%= paginacaoProjeto.page - 1 %>#alunos-no-projeto">Anterior</a>
+              <% } else { %>
+                <span class="btn btn-sm btn-secondary" style="opacity:0.5; pointer-events:none;">Anterior</span>
+              <% } %>
+              <% paginacaoProjeto.paginas.forEach(function(pagina) { %>
+                <% if (pagina === paginacaoProjeto.page) { %>
+                  <span class="btn btn-sm btn-primary" style="pointer-events:none;"><%= pagina %></span>
+                <% } else { %>
+                  <a class="btn btn-sm btn-outline project-project-page-link" href="/projetos/<%= projeto.id %>/alunos?<%= qsProjetoPrefix %>page_projeto=<%= pagina %>#alunos-no-projeto"><%= pagina %></a>
+                <% } %>
+              <% }) %>
+              <% if (paginacaoProjeto.page < paginacaoProjeto.total_pages) { %>
+                <a class="btn btn-sm btn-secondary project-project-page-link" href="/projetos/<%= projeto.id %>/alunos?<%= qsProjetoPrefix %>page_projeto=<%= paginacaoProjeto.page + 1 %>#alunos-no-projeto">Próxima</a>
+              <% } else { %>
+                <span class="btn btn-sm btn-secondary" style="opacity:0.5; pointer-events:none;">Próxima</span>
+              <% } %>
+            </div>
+          </div>
+        <% } %>
       <% } %>
     </div>
   </div>
@@ -110,20 +133,24 @@
         <% if (alunosDisponiveis.length === 0) { %>
           <p class="text-muted">Todos os alunos ativos já estão no projeto ou não há alunos cadastrados.</p>
         <% } else { %>
-          <% alunosDisponiveis.forEach(function(a) { %>
-            <div class="aluno-check-item available-student" data-busca="<%= a.codigo_nome.toLowerCase() %>">
-              <div>
-                <span class="codigo-cell" style="font-weight: bold;"><%= a.codigo_formatado %></span>
-                <span class="nome-cell"><%= a.nome %></span>
-                <div style="font-size: 0.75rem; color: var(--muted);"><%= a.turma_nome %></div>
+          <% gruposDisponiveis.forEach(function(grupo) { %>
+            <div class="project-letter-divider"><%= grupo.letra %></div>
+            <% grupo.alunos.forEach(function(a) { %>
+              <div class="aluno-check-item available-student" data-busca="<%= a.codigo_nome.toLowerCase() %>">
+                <div>
+                  <span class="codigo-cell" style="font-weight: bold;"><%= a.codigo_formatado %></span>
+                  <span class="nome-cell"><%= a.nome %></span>
+                  <div style="font-size: 0.75rem; color: var(--muted);"><%= a.turma_nome %></div>
+                </div>
+                <form action="/projetos/<%= projeto.id %>/alunos/adicionar" method="post" class="js-preserve-project-position">
+                  <input type="hidden" name="aluno_id" value="<%= a.id %>">
+                  <input type="hidden" name="periodo" value="<%= periodo %>">
+                  <input type="hidden" name="page_disponiveis" value="<%= paginacaoDisponiveis.page %>">
+                  <input type="hidden" name="page_projeto" value="<%= paginacaoProjeto.page %>">
+                  <button type="submit" class="btn btn-sm btn-primary">Inserir</button>
+                </form>
               </div>
-              <form action="/projetos/<%= projeto.id %>/alunos/adicionar" method="post" class="js-preserve-project-position">
-                <input type="hidden" name="aluno_id" value="<%= a.id %>">
-                <input type="hidden" name="periodo" value="<%= periodo %>">
-                <input type="hidden" name="page_disponiveis" value="<%= paginacaoDisponiveis.page %>">
-                <button type="submit" class="btn btn-sm btn-primary">Inserir</button>
-              </form>
-            </div>
+            <% }) %>
           <% }) %>
         <% } %>
       </div>
@@ -165,10 +192,12 @@ const projectPageStorageKey = 'projeto-alunos-ui-<%= projeto.id %>';
 
 function salvarPosicaoTelaProjeto() {
   const list = document.getElementById('aluno-check-list');
+  const projectList = document.getElementById('project-student-list');
   const filtro = document.getElementById('filtro-disponiveis');
   sessionStorage.setItem(projectPageStorageKey, JSON.stringify({
     scrollY: window.scrollY,
     listScrollTop: list ? list.scrollTop : 0,
+    projectListScrollTop: projectList ? projectList.scrollTop : 0,
     filtro: filtro ? filtro.value : ''
   }));
 }
@@ -193,6 +222,12 @@ document.querySelectorAll('.project-available-page-link').forEach((link) => {
   });
 });
 
+document.querySelectorAll('.project-project-page-link').forEach((link) => {
+  link.addEventListener('click', () => {
+    salvarPosicaoTelaProjeto();
+  });
+});
+
 window.addEventListener('load', () => {
   const saved = sessionStorage.getItem(projectPageStorageKey);
   if (!saved) return;
@@ -200,6 +235,7 @@ window.addEventListener('load', () => {
     const state = JSON.parse(saved);
     const filtro = document.getElementById('filtro-disponiveis');
     const list = document.getElementById('aluno-check-list');
+    const projectList = document.getElementById('project-student-list');
     if (filtro && typeof state.filtro === 'string') {
       filtro.value = state.filtro;
       filtrarAlunosDisponiveis(state.filtro);
@@ -209,6 +245,9 @@ window.addEventListener('load', () => {
     }
     if (list && typeof state.listScrollTop === 'number') {
       list.scrollTop = state.listScrollTop;
+    }
+    if (projectList && typeof state.projectListScrollTop === 'number') {
+      projectList.scrollTop = state.projectListScrollTop;
     }
   } catch (_) {
     // ignora estado inválido
