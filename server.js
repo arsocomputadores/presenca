@@ -44,6 +44,16 @@ function agruparAlunosPorInicial(lista = []) {
   return grupos;
 }
 
+function listarLetrasAlunos(lista = []) {
+  return [...new Set(lista.map((aluno) => getInicialAgrupamento(aluno?.nome)))];
+}
+
+function filtrarAlunosPorLetra(lista = [], letra) {
+  const letraNormalizada = String(letra || '').trim().toUpperCase();
+  if (!letraNormalizada) return [];
+  return lista.filter((aluno) => getInicialAgrupamento(aluno?.nome) === letraNormalizada);
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -960,21 +970,17 @@ app.get('/projetos/:id/alunos', requireAuth, requirePerfil('admin'), async (req,
 
   const now = new Date();
   const periodoRaw = String(req.query.periodo || '').trim();
-  const pageProjetoRaw = Number.parseInt(req.query.page_projeto, 10) || 1;
-  const pageDisponiveisRaw = Number.parseInt(req.query.page_disponiveis, 10) || 1;
-  const perPageDisponiveis = 10;
-  const perPageProjeto = 10;
+  const letraProjetoRaw = String(req.query.letra_projeto || '').trim().toUpperCase();
+  const letraDisponiveisRaw = String(req.query.letra_disponiveis || '').trim().toUpperCase();
   const periodo = /^[0-9]{4}-[0-9]{2}$/.test(periodoRaw)
     ? periodoRaw
     : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const [anoStr, mesStr] = periodo.split('-');
 
   const todosProjeto = ordenarAlunosPorNome(await store.getAlunosProjeto(projeto.id));
-  const totalProjeto = todosProjeto.length;
-  const totalPagesProjeto = Math.max(1, Math.ceil(totalProjeto / perPageProjeto));
-  const pageProjeto = Math.min(Math.max(1, pageProjetoRaw), totalPagesProjeto);
-  const offsetProjeto = (pageProjeto - 1) * perPageProjeto;
-  const alunosProjeto = todosProjeto.slice(offsetProjeto, offsetProjeto + perPageProjeto);
+  const letrasProjeto = listarLetrasAlunos(todosProjeto);
+  const letraProjeto = letrasProjeto.includes(letraProjetoRaw) ? letraProjetoRaw : (letrasProjeto[0] || '');
+  const alunosProjeto = filtrarAlunosPorLetra(todosProjeto, letraProjeto);
   const gruposProjeto = agruparAlunosPorInicial(alunosProjeto);
   const idsSelecionados = todosProjeto.map((a) => a.id);
   
@@ -983,33 +989,19 @@ app.get('/projetos/:id/alunos', requireAuth, requirePerfil('admin'), async (req,
   const todosDisponiveis = ordenarAlunosPorNome(
     todosAlunos.filter((a) => !idsSelecionados.includes(a.id))
   );
-  const totalDisponiveis = todosDisponiveis.length;
-  const totalPagesDisponiveis = Math.max(1, Math.ceil(totalDisponiveis / perPageDisponiveis));
-  const pageDisponiveis = Math.min(Math.max(1, pageDisponiveisRaw), totalPagesDisponiveis);
-  const offsetDisponiveis = (pageDisponiveis - 1) * perPageDisponiveis;
-  const alunosDisponiveis = todosDisponiveis.slice(offsetDisponiveis, offsetDisponiveis + perPageDisponiveis);
+  const letrasDisponiveis = listarLetrasAlunos(todosDisponiveis);
+  const letraDisponiveis = letrasDisponiveis.includes(letraDisponiveisRaw) ? letraDisponiveisRaw : (letrasDisponiveis[0] || '');
+  const alunosDisponiveis = filtrarAlunosPorLetra(todosDisponiveis, letraDisponiveis);
   const gruposDisponiveis = agruparAlunosPorInicial(alunosDisponiveis);
   const relatorioProjeto = await store.relatorioProjetoMes(projeto.id, Number(anoStr), Number(mesStr));
 
   const qsProjeto = new URLSearchParams();
   qsProjeto.set('periodo', periodo);
-  qsProjeto.set('page_disponiveis', String(pageDisponiveis));
+  if (letraDisponiveis) qsProjeto.set('letra_disponiveis', letraDisponiveis);
 
   const qsDisponiveis = new URLSearchParams();
   qsDisponiveis.set('periodo', periodo);
-  qsDisponiveis.set('page_projeto', String(pageProjeto));
-
-  const pageWindowStartProjeto = Math.max(1, pageProjeto - 2);
-  const pageWindowEndProjeto = Math.min(totalPagesProjeto, pageWindowStartProjeto + 4);
-  const pageStartProjeto = Math.max(1, pageWindowEndProjeto - 4);
-  const paginasProjeto = [];
-  for (let p = pageStartProjeto; p <= pageWindowEndProjeto; p += 1) paginasProjeto.push(p);
-
-  const pageWindowStart = Math.max(1, pageDisponiveis - 2);
-  const pageWindowEnd = Math.min(totalPagesDisponiveis, pageWindowStart + 4);
-  const pageStart = Math.max(1, pageWindowEnd - 4);
-  const paginasDisponiveis = [];
-  for (let p = pageStart; p <= pageWindowEnd; p += 1) paginasDisponiveis.push(p);
+  if (letraProjeto) qsDisponiveis.set('letra_projeto', letraProjeto);
 
   res.render('projetos/alunos', {
     titulo: `Projeto: ${projeto.nome}`,
@@ -1018,22 +1010,14 @@ app.get('/projetos/:id/alunos', requireAuth, requirePerfil('admin'), async (req,
     relatorioProjeto,
     alunosProjeto,
     gruposProjeto,
+    totalProjeto: todosProjeto.length,
     alunosDisponiveis,
     gruposDisponiveis,
-    paginacaoProjeto: {
-      total: totalProjeto,
-      page: pageProjeto,
-      per_page: perPageProjeto,
-      total_pages: totalPagesProjeto,
-      paginas: paginasProjeto,
-    },
-    paginacaoDisponiveis: {
-      total: totalDisponiveis,
-      page: pageDisponiveis,
-      per_page: perPageDisponiveis,
-      total_pages: totalPagesDisponiveis,
-      paginas: paginasDisponiveis,
-    },
+    totalDisponiveis: todosDisponiveis.length,
+    letrasProjeto,
+    letraProjetoSelecionada: letraProjeto,
+    letrasDisponiveis,
+    letraDisponiveisSelecionada: letraDisponiveis,
     queryProjetoBase: qsProjeto.toString(),
     queryDisponiveisBase: qsDisponiveis.toString(),
     sucesso: req.query.sucesso,
@@ -1043,19 +1027,19 @@ app.get('/projetos/:id/alunos', requireAuth, requirePerfil('admin'), async (req,
 
 app.post('/projetos/:id/alunos/adicionar', requireAuth, requirePerfil('admin'), async (req, res) => {
   try {
-    const { aluno_id, periodo, page_disponiveis, page_projeto } = req.body;
+    const { aluno_id, periodo, letra_disponiveis, letra_projeto } = req.body;
     await store.adicionarAlunoProjeto(req.params.id, aluno_id);
     const qs = new URLSearchParams();
     if (periodo) qs.set('periodo', String(periodo));
-    if (page_disponiveis) qs.set('page_disponiveis', String(page_disponiveis));
-    if (page_projeto) qs.set('page_projeto', String(page_projeto));
+    if (letra_disponiveis) qs.set('letra_disponiveis', String(letra_disponiveis));
+    if (letra_projeto) qs.set('letra_projeto', String(letra_projeto));
     qs.set('sucesso', 'Aluno inserido no projeto.');
     res.redirect(`/projetos/${req.params.id}/alunos?${qs.toString()}#inserir-alunos`);
   } catch (err) {
     const qs = new URLSearchParams();
     if (req.body.periodo) qs.set('periodo', String(req.body.periodo));
-    if (req.body.page_disponiveis) qs.set('page_disponiveis', String(req.body.page_disponiveis));
-    if (req.body.page_projeto) qs.set('page_projeto', String(req.body.page_projeto));
+    if (req.body.letra_disponiveis) qs.set('letra_disponiveis', String(req.body.letra_disponiveis));
+    if (req.body.letra_projeto) qs.set('letra_projeto', String(req.body.letra_projeto));
     qs.set('erro', err.message);
     res.redirect(`/projetos/${req.params.id}/alunos?${qs.toString()}#inserir-alunos`);
   }
@@ -1063,19 +1047,19 @@ app.post('/projetos/:id/alunos/adicionar', requireAuth, requirePerfil('admin'), 
 
 app.post('/projetos/:id/alunos/remover', requireAuth, requirePerfil('admin'), async (req, res) => {
   try {
-    const { aluno_id, periodo, page_projeto, page_disponiveis } = req.body;
+    const { aluno_id, periodo, letra_projeto, letra_disponiveis } = req.body;
     await store.removerAlunoProjeto(req.params.id, aluno_id);
     const qs = new URLSearchParams();
     if (periodo) qs.set('periodo', String(periodo));
-    if (page_projeto) qs.set('page_projeto', String(page_projeto));
-    if (page_disponiveis) qs.set('page_disponiveis', String(page_disponiveis));
+    if (letra_projeto) qs.set('letra_projeto', String(letra_projeto));
+    if (letra_disponiveis) qs.set('letra_disponiveis', String(letra_disponiveis));
     qs.set('sucesso', 'Aluno removido do projeto.');
     res.redirect(`/projetos/${req.params.id}/alunos?${qs.toString()}#alunos-no-projeto`);
   } catch (err) {
     const qs = new URLSearchParams();
     if (req.body.periodo) qs.set('periodo', String(req.body.periodo));
-    if (req.body.page_projeto) qs.set('page_projeto', String(req.body.page_projeto));
-    if (req.body.page_disponiveis) qs.set('page_disponiveis', String(req.body.page_disponiveis));
+    if (req.body.letra_projeto) qs.set('letra_projeto', String(req.body.letra_projeto));
+    if (req.body.letra_disponiveis) qs.set('letra_disponiveis', String(req.body.letra_disponiveis));
     qs.set('erro', err.message);
     res.redirect(`/projetos/${req.params.id}/alunos?${qs.toString()}#alunos-no-projeto`);
   }

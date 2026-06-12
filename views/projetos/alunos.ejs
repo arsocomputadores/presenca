@@ -61,12 +61,26 @@
   <!-- Coluna 1: Alunos Participantes -->
   <div class="card project-students-card" id="alunos-no-projeto">
     <div class="card-header">
-      <h4>Alunos no Projeto (<%= paginacaoProjeto.total %>)</h4>
+      <h4>Alunos no Projeto (<%= totalProjeto %>)</h4>
     </div>
     <div class="card-body project-students-card-body">
-      <% if (paginacaoProjeto.total === 0) { %>
+      <% if (letrasProjeto.length > 0) { %>
+        <% const qsProjetoPrefix = queryProjetoBase && queryProjetoBase.length ? (queryProjetoBase + '&') : ''; %>
+        <div class="project-letter-nav">
+          <% letrasProjeto.forEach(function(letra) { %>
+            <% if (letra === letraProjetoSelecionada) { %>
+              <span class="project-letter-chip active"><%= letra %></span>
+            <% } else { %>
+              <a class="project-letter-chip js-preserve-project-link" href="/projetos/<%= projeto.id %>/alunos?<%= qsProjetoPrefix %>letra_projeto=<%= letra %>#alunos-no-projeto"><%= letra %></a>
+            <% } %>
+          <% }) %>
+        </div>
+      <% } %>
+
+      <% if (alunosProjeto.length === 0) { %>
         <p class="text-muted">Nenhum aluno inserido neste projeto ainda.</p>
       <% } else { %>
+        <div class="project-letter-summary">Letra <strong><%= letraProjetoSelecionada %></strong>: <%= alunosProjeto.length %> aluno(s)</div>
         <div class="aluno-check-list project-student-list" id="project-student-list">
           <% gruposProjeto.forEach(function(grupo) { %>
             <div class="project-letter-divider"><%= grupo.letra %></div>
@@ -79,42 +93,14 @@
                 <form action="/projetos/<%= projeto.id %>/alunos/remover" method="post" onsubmit="return confirm('Excluir aluno do projeto?')" class="js-preserve-project-position">
                   <input type="hidden" name="aluno_id" value="<%= a.id %>">
                   <input type="hidden" name="periodo" value="<%= periodo %>">
-                  <input type="hidden" name="page_projeto" value="<%= paginacaoProjeto.page %>">
-                  <input type="hidden" name="page_disponiveis" value="<%= paginacaoDisponiveis.page %>">
+                  <input type="hidden" name="letra_projeto" value="<%= letraProjetoSelecionada %>">
+                  <input type="hidden" name="letra_disponiveis" value="<%= letraDisponiveisSelecionada %>">
                   <button type="submit" class="btn btn-sm btn-danger">Excluir</button>
                 </form>
               </div>
             <% }) %>
           <% }) %>
         </div>
-
-        <% if (paginacaoProjeto.total_pages > 1) { %>
-          <% const qsProjetoPrefix = queryProjetoBase && queryProjetoBase.length ? (queryProjetoBase + '&') : ''; %>
-          <div class="project-pagination">
-            <div class="project-pagination-summary">
-              Página <%= paginacaoProjeto.page %> de <%= paginacaoProjeto.total_pages %>
-            </div>
-            <div class="project-pagination-actions">
-              <% if (paginacaoProjeto.page > 1) { %>
-                <a class="btn btn-sm btn-secondary project-project-page-link" href="/projetos/<%= projeto.id %>/alunos?<%= qsProjetoPrefix %>page_projeto=<%= paginacaoProjeto.page - 1 %>#alunos-no-projeto">Anterior</a>
-              <% } else { %>
-                <span class="btn btn-sm btn-secondary" style="opacity:0.5; pointer-events:none;">Anterior</span>
-              <% } %>
-              <% paginacaoProjeto.paginas.forEach(function(pagina) { %>
-                <% if (pagina === paginacaoProjeto.page) { %>
-                  <span class="btn btn-sm btn-primary" style="pointer-events:none;"><%= pagina %></span>
-                <% } else { %>
-                  <a class="btn btn-sm btn-outline project-project-page-link" href="/projetos/<%= projeto.id %>/alunos?<%= qsProjetoPrefix %>page_projeto=<%= pagina %>#alunos-no-projeto"><%= pagina %></a>
-                <% } %>
-              <% }) %>
-              <% if (paginacaoProjeto.page < paginacaoProjeto.total_pages) { %>
-                <a class="btn btn-sm btn-secondary project-project-page-link" href="/projetos/<%= projeto.id %>/alunos?<%= qsProjetoPrefix %>page_projeto=<%= paginacaoProjeto.page + 1 %>#alunos-no-projeto">Próxima</a>
-              <% } else { %>
-                <span class="btn btn-sm btn-secondary" style="opacity:0.5; pointer-events:none;">Próxima</span>
-              <% } %>
-            </div>
-          </div>
-        <% } %>
       <% } %>
     </div>
   </div>
@@ -122,12 +108,29 @@
   <!-- Coluna 2: Adicionar Alunos -->
   <div class="card project-students-card" id="inserir-alunos">
     <div class="card-header">
-      <h4>Inserir Alunos (<%= paginacaoDisponiveis.total %>)</h4>
+      <h4>Inserir Alunos (<%= totalDisponiveis %>)</h4>
     </div>
     <div class="card-body project-students-card-body">
+      <% if (letrasDisponiveis.length > 0) { %>
+        <% const qsDisponiveisPrefix = queryDisponiveisBase && queryDisponiveisBase.length ? (queryDisponiveisBase + '&') : ''; %>
+        <div class="project-letter-nav">
+          <% letrasDisponiveis.forEach(function(letra) { %>
+            <% if (letra === letraDisponiveisSelecionada) { %>
+              <span class="project-letter-chip active"><%= letra %></span>
+            <% } else { %>
+              <a class="project-letter-chip js-preserve-project-link" href="/projetos/<%= projeto.id %>/alunos?<%= qsDisponiveisPrefix %>letra_disponiveis=<%= letra %>#inserir-alunos"><%= letra %></a>
+            <% } %>
+          <% }) %>
+        </div>
+      <% } %>
+
       <div class="form-group" style="margin-bottom: 1rem;">
         <input type="text" id="filtro-disponiveis" placeholder="Buscar aluno por nome ou código..." class="form-control" oninput="filtrarAlunosDisponiveis(this.value)">
       </div>
+
+      <% if (alunosDisponiveis.length > 0) { %>
+        <div class="project-letter-summary">Letra <strong><%= letraDisponiveisSelecionada %></strong>: <%= alunosDisponiveis.length %> aluno(s)</div>
+      <% } %>
 
       <div class="aluno-check-list" id="aluno-check-list">
         <% if (alunosDisponiveis.length === 0) { %>
@@ -145,8 +148,8 @@
                 <form action="/projetos/<%= projeto.id %>/alunos/adicionar" method="post" class="js-preserve-project-position">
                   <input type="hidden" name="aluno_id" value="<%= a.id %>">
                   <input type="hidden" name="periodo" value="<%= periodo %>">
-                  <input type="hidden" name="page_disponiveis" value="<%= paginacaoDisponiveis.page %>">
-                  <input type="hidden" name="page_projeto" value="<%= paginacaoProjeto.page %>">
+                  <input type="hidden" name="letra_disponiveis" value="<%= letraDisponiveisSelecionada %>">
+                  <input type="hidden" name="letra_projeto" value="<%= letraProjetoSelecionada %>">
                   <button type="submit" class="btn btn-sm btn-primary">Inserir</button>
                 </form>
               </div>
@@ -154,34 +157,6 @@
           <% }) %>
         <% } %>
       </div>
-
-      <% if (paginacaoDisponiveis.total_pages > 1) { %>
-        <% const qsPrefix = queryDisponiveisBase && queryDisponiveisBase.length ? (queryDisponiveisBase + '&') : ''; %>
-        <div class="project-pagination">
-          <div class="project-pagination-summary">
-            Página <%= paginacaoDisponiveis.page %> de <%= paginacaoDisponiveis.total_pages %>
-          </div>
-          <div class="project-pagination-actions">
-            <% if (paginacaoDisponiveis.page > 1) { %>
-              <a class="btn btn-sm btn-secondary project-available-page-link" href="/projetos/<%= projeto.id %>/alunos?<%= qsPrefix %>page_disponiveis=<%= paginacaoDisponiveis.page - 1 %>#inserir-alunos">Anterior</a>
-            <% } else { %>
-              <span class="btn btn-sm btn-secondary" style="opacity:0.5; pointer-events:none;">Anterior</span>
-            <% } %>
-            <% paginacaoDisponiveis.paginas.forEach(function(pagina) { %>
-              <% if (pagina === paginacaoDisponiveis.page) { %>
-                <span class="btn btn-sm btn-primary" style="pointer-events:none;"><%= pagina %></span>
-              <% } else { %>
-                <a class="btn btn-sm btn-outline project-available-page-link" href="/projetos/<%= projeto.id %>/alunos?<%= qsPrefix %>page_disponiveis=<%= pagina %>#inserir-alunos"><%= pagina %></a>
-              <% } %>
-            <% }) %>
-            <% if (paginacaoDisponiveis.page < paginacaoDisponiveis.total_pages) { %>
-              <a class="btn btn-sm btn-secondary project-available-page-link" href="/projetos/<%= projeto.id %>/alunos?<%= qsPrefix %>page_disponiveis=<%= paginacaoDisponiveis.page + 1 %>#inserir-alunos">Próxima</a>
-            <% } else { %>
-              <span class="btn btn-sm btn-secondary" style="opacity:0.5; pointer-events:none;">Próxima</span>
-            <% } %>
-          </div>
-        </div>
-      <% } %>
     </div>
   </div>
 
@@ -216,13 +191,7 @@ document.querySelectorAll('.js-preserve-project-position').forEach((form) => {
   });
 });
 
-document.querySelectorAll('.project-available-page-link').forEach((link) => {
-  link.addEventListener('click', () => {
-    salvarPosicaoTelaProjeto();
-  });
-});
-
-document.querySelectorAll('.project-project-page-link').forEach((link) => {
+document.querySelectorAll('.js-preserve-project-link').forEach((link) => {
   link.addEventListener('click', () => {
     salvarPosicaoTelaProjeto();
   });

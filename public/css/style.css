@@ -339,6 +339,41 @@ body {
   letter-spacing: 0.08em;
 }
 
+.project-letter-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.project-letter-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.3rem;
+  height: 2.3rem;
+  padding: 0 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #f8fafc;
+  color: var(--primary-dark);
+  text-decoration: none;
+  font-weight: 700;
+  box-shadow: var(--shadow-sm);
+}
+
+.project-letter-chip.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+.project-letter-summary {
+  margin-bottom: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
 .project-pagination {
   margin-top: 1rem;
   display: flex;
