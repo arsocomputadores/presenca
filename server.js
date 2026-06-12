@@ -78,6 +78,12 @@ function paginateItems(items = [], pageRaw = 1, perPage = 10) {
   };
 }
 
+function getTodayYmdLocal() {
+  const now = new Date();
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -612,7 +618,7 @@ app.post('/alunos/importar/confirmar', requireAuth, requirePerfil('admin'), asyn
           nome: names[i],
           data_nascimento: dates[i] || null,
           turma_id: turma_id,
-          data_matricula: new Date().toISOString().slice(0, 10)
+          data_matricula: getTodayYmdLocal()
         });
       } catch (e) {
         console.error(`Erro ao importar aluno ${ids[i]}: ${e.message}`);
@@ -688,7 +694,7 @@ app.post('/alunos', requireAuth, requirePerfil('admin'), async (req, res) => {
       nome: String(req.body.nome || '').trim(),
       data_nascimento: req.body.data_nascimento || null,
       turma_id: req.body.turma_id,
-      data_matricula: req.body.data_matricula || new Date().toISOString().slice(0, 10),
+      data_matricula: req.body.data_matricula || getTodayYmdLocal(),
     });
     res.redirect('/alunos?sucesso=Aluno cadastrado com sucesso.');
   } catch (err) {
@@ -868,7 +874,7 @@ app.get('/frequencia', requireAuth, requirePerfil('admin', 'professor'), async (
     }
   }
 
-  const data = req.query.data || new Date().toISOString().slice(0, 10);
+  const data = req.query.data || getTodayYmdLocal();
   const jaLancada = turmaId ? await store.frequenciaJaLancada(turmaId, data, horario) : false;
   const alunos = turmaId && !jaLancada ? await store.getFrequenciaTurma(turmaId, data, horario) : [];
 
@@ -1125,7 +1131,7 @@ const ExcelJS = require('exceljs');
 
 // --- Relatórios ---
 app.get('/relatorios', requireAuth, requirePerfil('admin', 'coordenacao', 'direcao'), async (req, res) => {
-  const data = req.query.data || new Date().toISOString().slice(0, 10);
+  const data = req.query.data || getTodayYmdLocal();
   const lancamentos = await store.relatorioLancamentosDia(data);
   res.render('relatorios/index', {
     titulo: 'Relatórios de Lançamentos',
@@ -1146,7 +1152,7 @@ app.post('/frequencias/limpar', requireAuth, requirePerfil('admin'), async (req,
 });
 
 app.get('/relatorios/exportar/excel', requireAuth, requirePerfil('admin', 'coordenacao', 'direcao'), async (req, res) => {
-  const data = req.query.data || new Date().toISOString().slice(0, 10);
+  const data = req.query.data || getTodayYmdLocal();
   const lancamentos = await store.relatorioLancamentosDia(data);
   
   const workbook = new ExcelJS.Workbook();

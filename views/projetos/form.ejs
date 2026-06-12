@@ -20,7 +20,7 @@
         </div>
         <div class="form-group">
           <label for="data_inicio">Data de Início *</label>
-          <input type="date" id="data_inicio" name="data_inicio" required value="<%= projeto ? (projeto.data_inicio instanceof Date ? projeto.data_inicio.toISOString().slice(0,10) : projeto.data_inicio) : new Date().toISOString().slice(0,10) %>">
+          <input type="date" id="data_inicio" name="data_inicio" required value="<%= projeto ? (projeto.data_inicio instanceof Date ? projeto.data_inicio.toISOString().slice(0,10) : projeto.data_inicio) : new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0,10) %>">
         </div>
         <div class="form-group">
           <label for="data_fim">Data de Fim (opcional)</label>

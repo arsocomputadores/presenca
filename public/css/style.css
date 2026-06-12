@@ -533,16 +533,12 @@ textarea::placeholder {
 }
 
 .freq-page-card {
-  height: calc(100dvh - 130px);
   display: flex;
   flex-direction: column;
 }
 
 .freq-card-body {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
+  display: block;
 }
 
 .freq-sticky-header {
@@ -580,10 +576,7 @@ textarea::placeholder {
   margin: 0;
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
-  flex: 1;
-  min-height: 0;
-  max-height: 100%;
-  overflow: auto;
+  overflow-x: auto;
 }
 
 .freq-table thead th {
