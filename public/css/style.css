@@ -277,6 +277,64 @@ body {
   padding: 1.5rem;
 }
 
+.project-students-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2rem;
+  align-items: stretch;
+}
+
+.project-students-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.project-students-card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.aluno-check-list {
+  flex: 1;
+  min-height: 640px;
+  overflow-y: auto;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.aluno-check-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.project-pagination {
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.project-pagination-summary {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.project-pagination-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -672,6 +730,8 @@ textarea::placeholder {
 
   .stats-grid { grid-template-columns: 1fr !important; gap: 0.75rem !important; }
   .turmas-grid { grid-template-columns: 1fr !important; }
+  .project-students-grid { grid-template-columns: 1fr !important; gap: 1rem !important; }
+  .aluno-check-list { min-height: 420px !important; }
 
   /* Ajustes de Título e Botões no Mobile */
   .section-header h3 { font-size: 1.1rem !important; }

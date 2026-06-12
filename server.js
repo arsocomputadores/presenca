@@ -936,6 +936,8 @@ app.get('/projetos/:id/alunos', requireAuth, requirePerfil('admin'), async (req,
 
   const now = new Date();
   const periodoRaw = String(req.query.periodo || '').trim();
+  const pageDisponiveisRaw = Number.parseInt(req.query.page_disponiveis, 10) || 1;
+  const perPageDisponiveis = 10;
   const periodo = /^[0-9]{4}-[0-9]{2}$/.test(periodoRaw)
     ? periodoRaw
     : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -946,10 +948,24 @@ app.get('/projetos/:id/alunos', requireAuth, requirePerfil('admin'), async (req,
   
   // Buscar todos os alunos ativos para a lista de adição
   const todosAlunos = await store.getAlunos({ ativo: 1 });
-  const alunosDisponiveis = ordenarAlunosPorNome(
+  const todosDisponiveis = ordenarAlunosPorNome(
     todosAlunos.filter((a) => !idsSelecionados.includes(a.id))
   );
+  const totalDisponiveis = todosDisponiveis.length;
+  const totalPagesDisponiveis = Math.max(1, Math.ceil(totalDisponiveis / perPageDisponiveis));
+  const pageDisponiveis = Math.min(Math.max(1, pageDisponiveisRaw), totalPagesDisponiveis);
+  const offsetDisponiveis = (pageDisponiveis - 1) * perPageDisponiveis;
+  const alunosDisponiveis = todosDisponiveis.slice(offsetDisponiveis, offsetDisponiveis + perPageDisponiveis);
   const relatorioProjeto = await store.relatorioProjetoMes(projeto.id, Number(anoStr), Number(mesStr));
+
+  const qsDisponiveis = new URLSearchParams();
+  qsDisponiveis.set('periodo', periodo);
+
+  const pageWindowStart = Math.max(1, pageDisponiveis - 2);
+  const pageWindowEnd = Math.min(totalPagesDisponiveis, pageWindowStart + 4);
+  const pageStart = Math.max(1, pageWindowEnd - 4);
+  const paginasDisponiveis = [];
+  for (let p = pageStart; p <= pageWindowEnd; p += 1) paginasDisponiveis.push(p);
 
   res.render('projetos/alunos', {
     titulo: `Projeto: ${projeto.nome}`,
@@ -958,6 +974,14 @@ app.get('/projetos/:id/alunos', requireAuth, requirePerfil('admin'), async (req,
     relatorioProjeto,
     alunosProjeto,
     alunosDisponiveis,
+    paginacaoDisponiveis: {
+      total: totalDisponiveis,
+      page: pageDisponiveis,
+      per_page: perPageDisponiveis,
+      total_pages: totalPagesDisponiveis,
+      paginas: paginasDisponiveis,
+    },
+    queryDisponiveisBase: qsDisponiveis.toString(),
     sucesso: req.query.sucesso,
     erro: req.query.erro
   });
@@ -965,11 +989,19 @@ app.get('/projetos/:id/alunos', requireAuth, requirePerfil('admin'), async (req,
 
 app.post('/projetos/:id/alunos/adicionar', requireAuth, requirePerfil('admin'), async (req, res) => {
   try {
-    const { aluno_id } = req.body;
+    const { aluno_id, periodo, page_disponiveis } = req.body;
     await store.adicionarAlunoProjeto(req.params.id, aluno_id);
-    res.redirect(`/projetos/${req.params.id}/alunos?sucesso=Aluno inserido no projeto.`);
+    const qs = new URLSearchParams();
+    if (periodo) qs.set('periodo', String(periodo));
+    if (page_disponiveis) qs.set('page_disponiveis', String(page_disponiveis));
+    qs.set('sucesso', 'Aluno inserido no projeto.');
+    res.redirect(`/projetos/${req.params.id}/alunos?${qs.toString()}#inserir-alunos`);
   } catch (err) {
-    res.redirect(`/projetos/${req.params.id}/alunos?erro=${encodeURIComponent(err.message)}`);
+    const qs = new URLSearchParams();
+    if (req.body.periodo) qs.set('periodo', String(req.body.periodo));
+    if (req.body.page_disponiveis) qs.set('page_disponiveis', String(req.body.page_disponiveis));
+    qs.set('erro', err.message);
+    res.redirect(`/projetos/${req.params.id}/alunos?${qs.toString()}#inserir-alunos`);
   }
 });
 
