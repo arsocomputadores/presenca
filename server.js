@@ -9,6 +9,17 @@ const upload = multer({ storage: multer.memoryStorage() });
 const { isMysqlEnabled } = require('./lib/db');
 const store = isMysqlEnabled() ? require('./lib/mysqlStore') : require('./lib/demoStore');
 
+function ordenarAlunosPorNome(lista = []) {
+  const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
+  return [...lista].sort((a, b) => {
+    const nomeA = String(a?.nome || '').trim();
+    const nomeB = String(b?.nome || '').trim();
+    const porNome = collator.compare(nomeA, nomeB);
+    if (porNome !== 0) return porNome;
+    return collator.compare(String(a?.codigo || ''), String(b?.codigo || ''));
+  });
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -566,7 +577,7 @@ app.get('/alunos', requireAuth, requirePerfil('admin', 'coordenacao', 'direcao')
   const turmaIdNum = turma_id ? Number(turma_id) : undefined;
 
   const pageNum = Number.parseInt(page, 10) || 1;
-  const perPageNum = Number.parseInt(per_page, 10) || 25;
+  const perPageNum = Number.parseInt(per_page, 10) || 10;
 
   const paginado = await store.getAlunosPaginados({
     ativo,
@@ -582,6 +593,12 @@ app.get('/alunos', requireAuth, requirePerfil('admin', 'coordenacao', 'direcao')
   if (statusNorm) qs.set('status', statusNorm);
   qs.set('per_page', String(paginado.per_page));
 
+  const pageWindowStart = Math.max(1, paginado.page - 2);
+  const pageWindowEnd = Math.min(paginado.total_pages, pageWindowStart + 4);
+  const pageStart = Math.max(1, pageWindowEnd - 4);
+  const paginas = [];
+  for (let p = pageStart; p <= pageWindowEnd; p += 1) paginas.push(p);
+
   res.render('alunos/index', {
     titulo: 'Alunos',
     alunos: paginado.items,
@@ -592,6 +609,7 @@ app.get('/alunos', requireAuth, requirePerfil('admin', 'coordenacao', 'direcao')
       page: paginado.page,
       per_page: paginado.per_page,
       total_pages: paginado.total_pages,
+      paginas,
     },
     queryBase: qs.toString(),
     sucesso: req.query.sucesso,
@@ -923,15 +941,14 @@ app.get('/projetos/:id/alunos', requireAuth, requirePerfil('admin'), async (req,
     : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const [anoStr, mesStr] = periodo.split('-');
 
-  const alunosProjeto = (await store.getAlunosProjeto(projeto.id))
-    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }) || String(a.codigo).localeCompare(String(b.codigo)));
+  const alunosProjeto = ordenarAlunosPorNome(await store.getAlunosProjeto(projeto.id));
   const idsSelecionados = alunosProjeto.map((a) => a.id);
   
   // Buscar todos os alunos ativos para a lista de adição
   const todosAlunos = await store.getAlunos({ ativo: 1 });
-  const alunosDisponiveis = todosAlunos
-    .filter(a => !idsSelecionados.includes(a.id))
-    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }) || String(a.codigo).localeCompare(String(b.codigo)));
+  const alunosDisponiveis = ordenarAlunosPorNome(
+    todosAlunos.filter((a) => !idsSelecionados.includes(a.id))
+  );
   const relatorioProjeto = await store.relatorioProjetoMes(projeto.id, Number(anoStr), Number(mesStr));
 
   res.render('projetos/alunos', {

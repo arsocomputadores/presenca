@@ -16,7 +16,7 @@
   <div class="card-body">
     <form method="get" class="filter-bar" style="margin-bottom:1.25rem">
       <input type="hidden" name="page" value="1">
-      <input type="hidden" name="per_page" value="<%= (paginacao && paginacao.per_page) ? paginacao.per_page : 25 %>">
+      <input type="hidden" name="per_page" value="<%= (paginacao && paginacao.per_page) ? paginacao.per_page : 10 %>">
       <div class="form-group">
         <label>Buscar</label>
         <input type="text" name="busca" placeholder="Código ou nome..." value="<%= filtros.busca || '' %>">
@@ -94,18 +94,25 @@
       </table>
     </div>
 
-    <% if (paginacao && paginacao.total_pages > 1) { %>
+    <% if (paginacao) { %>
       <% const qsPrefix = queryBase && queryBase.length ? (queryBase + '&') : ''; %>
       <div style="display:flex; align-items:center; justify-content: space-between; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap;">
         <div style="color: var(--text-muted); font-weight: 600;">
-          Página <%= paginacao.page %> de <%= paginacao.total_pages %> • Total: <%= paginacao.total %>
+          Página <%= paginacao.page %> de <%= paginacao.total_pages %> • Total: <%= paginacao.total %> alunos
         </div>
-        <div style="display:flex; gap: 0.5rem; align-items:center;">
+        <div style="display:flex; gap: 0.5rem; align-items:center; flex-wrap: wrap;">
           <% if (paginacao.page > 1) { %>
             <a class="btn btn-sm btn-secondary" href="/alunos?<%= qsPrefix %>page=<%= paginacao.page - 1 %>">Anterior</a>
           <% } else { %>
             <span class="btn btn-sm btn-secondary" style="opacity:0.5; pointer-events:none;">Anterior</span>
           <% } %>
+          <% paginacao.paginas.forEach(function(pagina) { %>
+            <% if (pagina === paginacao.page) { %>
+              <span class="btn btn-sm btn-primary" style="pointer-events:none;"><%= pagina %></span>
+            <% } else { %>
+              <a class="btn btn-sm btn-outline" href="/alunos?<%= qsPrefix %>page=<%= pagina %>"><%= pagina %></a>
+            <% } %>
+          <% }) %>
           <% if (paginacao.page < paginacao.total_pages) { %>
             <a class="btn btn-sm btn-secondary" href="/alunos?<%= qsPrefix %>page=<%= paginacao.page + 1 %>">Próxima</a>
           <% } else { %>

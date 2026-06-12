@@ -96,8 +96,8 @@ body {
   width: 280px;
   background: var(--sidebar-bg);
   color: white;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   position: sticky;
   top: 0;
   height: 100dvh;
@@ -134,10 +134,10 @@ body {
 }
 
 .sidebar nav {
-  flex: 1;
   padding: 1rem;
   overflow-y: auto;
   overflow-x: hidden;
+  min-height: 0;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
@@ -196,6 +196,9 @@ body {
   padding: 1.5rem;
   background: rgba(0, 0, 0, 0.2);
   flex-shrink: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+  z-index: 1;
 }
 
 .user-name {
