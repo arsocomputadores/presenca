@@ -8,6 +8,54 @@
   <a href="/projetos" class="btn btn-sm btn-outline">Voltar para Projetos</a>
 </div>
 
+<div class="card" style="margin-bottom: 1.5rem;">
+  <div class="card-header" style="display:flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+    <h4 style="margin: 0;">Frequência do Projeto</h4>
+    <form method="get" action="/projetos/<%= projeto.id %>/alunos" style="display:flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+      <input type="month" name="periodo" class="form-control" value="<%= periodo %>" style="max-width: 180px;">
+      <button type="submit" class="btn btn-sm btn-primary">Atualizar</button>
+    </form>
+  </div>
+  <div class="card-body">
+    <% if (!relatorioProjeto || relatorioProjeto.length === 0) { %>
+      <p class="text-muted">Nenhum lançamento encontrado para o período selecionado.</p>
+    <% } else { %>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Aluno</th>
+              <th>Turma</th>
+              <th style="width: 90px; text-align: right;">Aulas</th>
+              <th style="width: 70px; text-align: right;">P</th>
+              <th style="width: 70px; text-align: right;">F</th>
+              <th style="width: 70px; text-align: right;">J</th>
+              <th style="width: 110px; text-align: right;">% Pres.</th>
+              <th style="width: 110px; text-align: right;">% Falt.</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% relatorioProjeto.forEach(function(r) { %>
+              <tr>
+                <td><%= r.codigo_formatado %></td>
+                <td><%= r.nome %></td>
+                <td><%= r.turma || '-' %></td>
+                <td style="text-align: right;"><%= r.dias_lancados %></td>
+                <td style="text-align: right;"><%= r.presencas %></td>
+                <td style="text-align: right;"><%= r.faltas %></td>
+                <td style="text-align: right;"><%= r.justificadas %></td>
+                <td style="text-align: right;"><%= Number(r.percentual_presenca || 0).toFixed(2) %>%</td>
+                <td style="text-align: right;"><%= Number(r.percentual_faltas || 0).toFixed(2) %>%</td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</div>
+
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
   
   <!-- Coluna 1: Alunos Participantes -->

@@ -1,6 +1,7 @@
 <%- include('../partials/shell-start') %>
 
 <% if (sucesso) { %><div class="alert alert-success"><%= sucesso %></div><% } %>
+<% if (erro) { %><div class="alert alert-error"><%= erro %></div><% } %>
 
 <div class="card">
   <div class="card-header">
@@ -35,7 +36,12 @@
       <span><i class="dot dot-J"></i> J — Justificada</span>
     </div>
 
-    <% if (alunos.length === 0) { %>
+    <% if (jaLancada) { %>
+      <div class="alert alert-info">
+        A frequência desta turma já foi lançada para o <strong><%= horario %>º horário</strong> em <strong><%= formatarData(data) %></strong>.
+        Escolha outro horário ou outra data para continuar.
+      </div>
+    <% } else if (alunos.length === 0) { %>
       <p style="color:var(--muted)">Nenhum aluno ativo nesta turma.</p>
     <% } else { %>
       <form method="post" action="/frequencia" id="form-frequencia">

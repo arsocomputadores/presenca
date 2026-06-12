@@ -1,5 +1,5 @@
 const express = require('express');
-const session = require('express-session');
+const cookieSession = require('cookie-session');
 const path = require('path');
 require('dotenv').config();
 const multer = require('multer');
@@ -14,19 +14,28 @@ const PORT = process.env.PORT || 3000;
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+app.set('trust proxy', 1);
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(
-  session({
-    secret: process.env.SESSION_SECRET || 'presenca-dev-secret',
-    resave: false,
-    saveUninitialized: false,
-    rolling: true,
-    cookie: { maxAge: 3 * 60 * 1000 },
+  cookieSession({
+    name: 'presenca_session',
+    keys: [process.env.SESSION_SECRET || 'presenca-dev-secret'],
+    maxAge: 3 * 60 * 1000,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
   })
 );
+
+app.use((req, res, next) => {
+  if (req.session?.usuario) {
+    req.session.ultimo_acesso_em = Date.now();
+  }
+  next();
+});
 
 app.use(async (req, res, next) => {
   res.locals.usuario = req.session.usuario || null;
@@ -114,7 +123,7 @@ async function getRedirectPosLogin(usuario) {
 app.use((req, res, next) => {
   if (!req.session.usuario) return next();
   if (req.session.usuario.aviso_inicial_lido_em) return next();
-  if (req.path === '/aviso-inicial' || req.path === '/logout') return next();
+  if (req.path.startsWith('/aviso-inicial') || req.path === '/logout') return next();
   return res.redirect('/aviso-inicial');
 });
 
@@ -345,12 +354,13 @@ app.post('/mensagens/lidas', requireAuth, async (req, res) => {
 });
 
 app.get('/logout', (req, res) => {
-  req.session.destroy();
+  req.session = null;
   res.redirect('/login');
 });
 
 app.post('/logout', (req, res) => {
-  req.session.destroy(() => res.redirect('/login'));
+  req.session = null;
+  res.redirect('/login');
 });
 
 // --- Dashboard ---
@@ -548,37 +558,42 @@ app.post('/alunos/importar/confirmar', requireAuth, requirePerfil('admin'), asyn
 
 // --- Alunos ---
 app.get('/alunos', requireAuth, requirePerfil('admin', 'coordenacao', 'direcao'), async (req, res) => {
-  const { busca, turma_id, status } = req.query;
+  const { busca, turma_id, status, page, per_page } = req.query;
   const usuario = req.session.usuario;
-  
-  let alunos = await store.getAlunos();
 
-  // Se for professor, filtrar apenas alunos das suas turmas
-  if (usuario.perfil === 'professor') {
-    const turmasProf = await store.getTurmas(usuario.id);
-    const idsTurmas = turmasProf.map(t => t.id);
-    alunos = alunos.filter(a => idsTurmas.includes(a.turma_id));
-  }
+  const statusNorm = status || 'ativo';
+  const ativo = statusNorm === 'todos' ? undefined : statusNorm === 'inativo' ? 0 : 1;
+  const turmaIdNum = turma_id ? Number(turma_id) : undefined;
 
-  if (status === 'inativo') alunos = alunos.filter((a) => !a.ativo);
-  else if (status !== 'todos') alunos = alunos.filter((a) => a.ativo);
+  const pageNum = Number.parseInt(page, 10) || 1;
+  const perPageNum = Number.parseInt(per_page, 10) || 25;
 
-  if (turma_id) alunos = alunos.filter((a) => a.turma_id === Number(turma_id));
-  if (busca) {
-    const q = busca.toLowerCase();
-    alunos = alunos.filter(
-      (a) =>
-        a.codigo.includes(q) ||
-        a.nome.toLowerCase().includes(q) ||
-        (a.codigo_nome && a.codigo_nome.toLowerCase().includes(q))
-    );
-  }
+  const paginado = await store.getAlunosPaginados({
+    ativo,
+    turma_id: turmaIdNum,
+    busca,
+    page: pageNum,
+    per_page: perPageNum,
+  });
+
+  const qs = new URLSearchParams();
+  if (busca) qs.set('busca', busca);
+  if (turma_id) qs.set('turma_id', turma_id);
+  if (statusNorm) qs.set('status', statusNorm);
+  qs.set('per_page', String(paginado.per_page));
 
   res.render('alunos/index', {
     titulo: 'Alunos',
-    alunos,
+    alunos: paginado.items,
     turmas: await store.getTurmas(usuario.perfil === 'professor' ? usuario.id : null),
-    filtros: { busca, turma_id, status: status || 'ativo' },
+    filtros: { busca, turma_id, status: statusNorm },
+    paginacao: {
+      total: paginado.total,
+      page: paginado.page,
+      per_page: paginado.per_page,
+      total_pages: paginado.total_pages,
+    },
+    queryBase: qs.toString(),
     sucesso: req.query.sucesso,
     erro: req.query.erro,
   });
@@ -784,7 +799,8 @@ app.get('/frequencia', requireAuth, requirePerfil('admin', 'professor'), async (
   }
 
   const data = req.query.data || new Date().toISOString().slice(0, 10);
-  const alunos = turmaId ? await store.getFrequenciaTurma(turmaId, data, horario) : [];
+  const jaLancada = turmaId ? await store.frequenciaJaLancada(turmaId, data, horario) : false;
+  const alunos = turmaId && !jaLancada ? await store.getFrequenciaTurma(turmaId, data, horario) : [];
 
   res.render('frequencia/index', {
     titulo: 'Lançar frequência',
@@ -793,7 +809,9 @@ app.get('/frequencia', requireAuth, requirePerfil('admin', 'professor'), async (
     data,
     horario,
     alunos,
+    jaLancada,
     sucesso: req.query.sucesso,
+    erro: req.query.erro,
   });
 });
 
@@ -809,6 +827,10 @@ app.post('/frequencia', requireAuth, requirePerfil('admin', 'professor'), async 
     if (!temAcesso) {
       return res.status(403).render('error', { titulo: 'Acesso negado', mensagem: 'Você não tem permissão para lançar frequência nesta turma.' });
     }
+  }
+
+  if (await store.frequenciaJaLancada(tId, data, hId)) {
+    return res.redirect(`/frequencia?turma_id=${tId}&data=${data}&horario=${hId}&erro=${encodeURIComponent(`A frequência dessa turma já foi lançada para o ${hId}º horário.`)}`);
   }
 
   let parsed = [];
@@ -830,8 +852,12 @@ app.post('/frequencia', requireAuth, requirePerfil('admin', 'professor'), async 
     }));
   }
 
-  await store.salvarFrequencia(tId, data, parsed, req.session.usuario.id, hId);
-  res.redirect(`/frequencia?turma_id=${tId}&data=${data}&horario=${hId}&sucesso=Frequência salva.`);
+  try {
+    await store.salvarFrequencia(tId, data, parsed, req.session.usuario.id, hId);
+    res.redirect(`/frequencia?turma_id=${tId}&data=${data}&horario=${hId}&sucesso=Frequência salva.`);
+  } catch (err) {
+    res.redirect(`/frequencia?turma_id=${tId}&data=${data}&horario=${hId}&erro=${encodeURIComponent(err.message || 'Não foi possível salvar a frequência.')}`);
+  }
 });
 
 // --- Projetos ---
@@ -890,16 +916,29 @@ app.get('/projetos/:id/alunos', requireAuth, requirePerfil('admin'), async (req,
   const projeto = await store.getProjeto(req.params.id);
   if (!projeto) return res.redirect('/projetos');
 
-  const alunosProjeto = await store.getAlunosProjeto(projeto.id);
+  const now = new Date();
+  const periodoRaw = String(req.query.periodo || '').trim();
+  const periodo = /^[0-9]{4}-[0-9]{2}$/.test(periodoRaw)
+    ? periodoRaw
+    : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const [anoStr, mesStr] = periodo.split('-');
+
+  const alunosProjeto = (await store.getAlunosProjeto(projeto.id))
+    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }) || String(a.codigo).localeCompare(String(b.codigo)));
   const idsSelecionados = alunosProjeto.map((a) => a.id);
   
   // Buscar todos os alunos ativos para a lista de adição
   const todosAlunos = await store.getAlunos({ ativo: 1 });
-  const alunosDisponiveis = todosAlunos.filter(a => !idsSelecionados.includes(a.id));
+  const alunosDisponiveis = todosAlunos
+    .filter(a => !idsSelecionados.includes(a.id))
+    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }) || String(a.codigo).localeCompare(String(b.codigo)));
+  const relatorioProjeto = await store.relatorioProjetoMes(projeto.id, Number(anoStr), Number(mesStr));
 
   res.render('projetos/alunos', {
     titulo: `Projeto: ${projeto.nome}`,
     projeto,
+    periodo,
+    relatorioProjeto,
     alunosProjeto,
     alunosDisponiveis,
     sucesso: req.query.sucesso,

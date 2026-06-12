@@ -88,6 +88,8 @@ body {
 .app-shell {
   display: flex;
   min-height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 .sidebar {
@@ -98,7 +100,9 @@ body {
   flex-direction: column;
   position: sticky;
   top: 0;
-  height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
   transition: all 0.3s ease;
   box-shadow: 4px 0 24px rgba(0,0,0,0.1);
   flex-shrink: 0;
@@ -133,6 +137,35 @@ body {
   flex: 1;
   padding: 1rem;
   overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+}
+
+.sidebar nav::-webkit-scrollbar {
+  width: 10px;
+}
+
+.sidebar nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.sidebar nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.sidebar nav a.nav-logout {
+  display: none;
 }
 
 .sidebar nav a {
@@ -162,6 +195,7 @@ body {
 .sidebar-footer {
   padding: 1.5rem;
   background: rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
 }
 
 .user-name {
@@ -181,6 +215,8 @@ body {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  height: 100dvh;
+  overflow: auto;
 }
 
 .topbar {
@@ -561,6 +597,8 @@ textarea::placeholder {
   .app-shell {
     flex-direction: column !important;
     display: flex !important;
+    height: auto !important;
+    overflow: visible !important;
   }
   
   .sidebar {
@@ -616,6 +654,10 @@ textarea::placeholder {
     margin-bottom: 0 !important;
     flex-shrink: 0 !important;
     background: rgba(255,255,255,0.05);
+  }
+
+  .sidebar nav a.nav-logout {
+    display: flex !important;
   }
 
   .sidebar-footer {
@@ -730,7 +772,7 @@ textarea::placeholder {
 /* --- Impressão --- */
 @media print {
   .sidebar, .topbar, .no-print, .btn, form, .freq-toolbar { display: none !important; }
-  .app-shell { display: block; }
-  .main-content { margin: 0; padding: 0; }
+  .app-shell { display: block; height: auto !important; overflow: visible !important; }
+  .main-content { margin: 0; padding: 0; height: auto !important; overflow: visible !important; }
   .card { box-shadow: none; border: 1px solid #ddd; }
 }
