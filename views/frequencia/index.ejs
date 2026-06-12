@@ -3,37 +3,39 @@
 <% if (sucesso) { %><div class="alert alert-success"><%= sucesso %></div><% } %>
 <% if (erro) { %><div class="alert alert-error"><%= erro %></div><% } %>
 
-<div class="card">
+<div class="card freq-page-card">
   <div class="card-header">
     <h3>Frequência diária — <%= formatarData(data) %></h3>
   </div>
-  <div class="card-body">
-    <form method="get" action="/frequencia" class="freq-toolbar">
-      <div class="form-group">
-        <label for="turma_id">Turma</label>
-        <select name="turma_id" id="turma_id" onchange="this.form.submit()">
-          <% turmas.forEach(function(t) { %>
-            <option value="<%= t.id %>" <%= turmaId == t.id ? 'selected' : '' %>><%= t.nome %> — <%= t.serie %></option>
-          <% }) %>
-        </select>
-      </div>
-      <div class="form-group">
-        <label for="data">Data</label>
-        <input type="date" name="data" id="data" value="<%= data %>" onchange="this.form.submit()">
-      </div>
-      <div class="form-group">
-        <label for="horario">Horário</label>
-        <select name="horario" id="horario" onchange="this.form.submit()">
-          <option value="1" <%= horario == 1 ? 'selected' : '' %>>1º Horário</option>
-          <option value="6" <%= horario == 6 ? 'selected' : '' %>>6º Horário</option>
-        </select>
-      </div>
-    </form>
+  <div class="card-body freq-card-body">
+    <div class="freq-sticky-header">
+      <form method="get" action="/frequencia" class="freq-toolbar">
+        <div class="form-group">
+          <label for="turma_id">Turma</label>
+          <select name="turma_id" id="turma_id" onchange="this.form.submit()">
+            <% turmas.forEach(function(t) { %>
+              <option value="<%= t.id %>" <%= turmaId == t.id ? 'selected' : '' %>><%= t.nome %> — <%= t.serie %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="data">Data</label>
+          <input type="date" name="data" id="data" value="<%= data %>" onchange="this.form.submit()">
+        </div>
+        <div class="form-group">
+          <label for="horario">Horário</label>
+          <select name="horario" id="horario" onchange="this.form.submit()">
+            <option value="1" <%= horario == 1 ? 'selected' : '' %>>1º Horário</option>
+            <option value="6" <%= horario == 6 ? 'selected' : '' %>>6º Horário</option>
+          </select>
+        </div>
+      </form>
 
-    <div class="freq-legend">
-      <span><i class="dot dot-P"></i> P — Presente</span>
-      <span><i class="dot dot-F"></i> F — Falta</span>
-      <span><i class="dot dot-J"></i> J — Justificada</span>
+      <div class="freq-legend">
+        <span><i class="dot dot-P"></i> P — Presente</span>
+        <span><i class="dot dot-F"></i> F — Falta</span>
+        <span><i class="dot dot-J"></i> J — Justificada</span>
+      </div>
     </div>
 
     <% if (jaLancada) { %>

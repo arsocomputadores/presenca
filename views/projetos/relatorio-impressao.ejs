@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= titulo %></title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { background: #fff; }
+    .print-page { max-width: 1100px; margin: 0 auto; padding: 2rem; }
+    .print-actions { display: flex; gap: 0.75rem; justify-content: flex-end; margin-bottom: 1rem; }
+    .print-header { margin-bottom: 1.5rem; text-align: center; }
+    .print-header h1 { margin: 0 0 0.5rem; color: var(--primary-dark); }
+    .print-header p { margin: 0; color: var(--text-muted); font-weight: 600; }
+    @media print {
+      .print-actions { display: none !important; }
+      .print-page { max-width: none; padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="print-page">
+    <div class="print-actions">
+      <button type="button" class="btn btn-outline" onclick="window.close()">Fechar</button>
+      <button type="button" class="btn btn-primary" onclick="window.print()">Imprimir / PDF</button>
+    </div>
+
+    <div class="print-header">
+      <h1>Relatório de Frequência do Projeto</h1>
+      <p>Projeto: <strong><%= projeto.nome %></strong> | Período: <strong><%= periodo %></strong></p>
+    </div>
+
+    <% if (!relatorioProjeto || relatorioProjeto.length === 0) { %>
+      <p class="text-muted">Nenhum lançamento encontrado para o período informado.</p>
+    <% } else { %>
+      <div class="table-wrap" style="margin:0;">
+        <table>
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Aluno</th>
+              <th>Turma</th>
+              <th style="text-align:right;">Aulas</th>
+              <th style="text-align:right;">P</th>
+              <th style="text-align:right;">F</th>
+              <th style="text-align:right;">J</th>
+              <th style="text-align:right;">% Pres.</th>
+              <th style="text-align:right;">% Falt.</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% relatorioProjeto.forEach(function(r) { %>
+              <tr>
+                <td><%= r.codigo_formatado %></td>
+                <td><%= r.nome %></td>
+                <td><%= r.turma || '-' %></td>
+                <td style="text-align:right;"><%= r.dias_lancados %></td>
+                <td style="text-align:right;"><%= r.presencas %></td>
+                <td style="text-align:right;"><%= r.faltas %></td>
+                <td style="text-align:right;"><%= r.justificadas %></td>
+                <td style="text-align:right;"><%= Number(r.percentual_presenca || 0).toFixed(2) %>%</td>
+                <td style="text-align:right;"><%= Number(r.percentual_faltas || 0).toFixed(2) %>%</td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</body>
+</html>

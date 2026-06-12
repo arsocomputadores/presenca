@@ -374,8 +374,10 @@ body {
   font-weight: 600;
 }
 
-.project-pagination {
+.pagination-toolbar {
   margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -383,12 +385,12 @@ body {
   flex-wrap: wrap;
 }
 
-.project-pagination-summary {
+.pagination-summary {
   color: var(--text-muted);
   font-weight: 600;
 }
 
-.project-pagination-actions {
+.pagination-actions {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -420,6 +422,7 @@ body {
 
 .stat-card .label { font-size: 0.875rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.5rem; }
 .stat-card .value { font-size: 2.25rem; font-weight: 800; color: var(--primary-dark); }
+.stat-card .subvalue { margin-top: 0.5rem; font-size: 0.875rem; font-weight: 600; color: var(--text-muted); }
 
 /* --- Tabelas --- */
 .table-wrap {
@@ -521,12 +524,33 @@ textarea::placeholder {
 .freq-toolbar {
   display: flex;
   gap: 1.5rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
   background: #f8fafc;
   padding: 1.25rem;
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
   align-items: flex-end;
+}
+
+.freq-page-card {
+  height: calc(100dvh - 130px);
+  display: flex;
+  flex-direction: column;
+}
+
+.freq-card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.freq-sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--surface);
+  padding-bottom: 0.75rem;
 }
 
 .freq-legend {
@@ -555,6 +579,18 @@ textarea::placeholder {
 .freq-table-wrap {
   margin: 0;
   border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  flex: 1;
+  min-height: 0;
+  max-height: 100%;
+  overflow: auto;
+}
+
+.freq-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f8fafc;
 }
 
 .freq-actions-bar {
@@ -792,6 +828,8 @@ textarea::placeholder {
   .turmas-grid { grid-template-columns: 1fr !important; }
   .project-students-grid { grid-template-columns: 1fr !important; gap: 1rem !important; }
   .aluno-check-list { min-height: 420px !important; }
+  .freq-page-card { height: auto !important; }
+  .freq-table-wrap { border: none !important; max-height: none !important; }
 
   /* Ajustes de Título e Botões no Mobile */
   .section-header h3 { font-size: 1.1rem !important; }

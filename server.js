@@ -54,6 +54,30 @@ function filtrarAlunosPorLetra(lista = [], letra) {
   return lista.filter((aluno) => getInicialAgrupamento(aluno?.nome) === letraNormalizada);
 }
 
+function buildPaginationPages(page, totalPages) {
+  const pageWindowStart = Math.max(1, page - 2);
+  const pageWindowEnd = Math.min(totalPages, pageWindowStart + 4);
+  const pageStart = Math.max(1, pageWindowEnd - 4);
+  const paginas = [];
+  for (let p = pageStart; p <= pageWindowEnd; p += 1) paginas.push(p);
+  return paginas;
+}
+
+function paginateItems(items = [], pageRaw = 1, perPage = 10) {
+  const total = items.length;
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
+  const page = Math.min(Math.max(1, Number.parseInt(pageRaw, 10) || 1), totalPages);
+  const offset = (page - 1) * perPage;
+  return {
+    items: items.slice(offset, offset + perPage),
+    total,
+    page,
+    per_page: perPage,
+    total_pages: totalPages,
+    paginas: buildPaginationPages(page, totalPages),
+  };
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -627,12 +651,6 @@ app.get('/alunos', requireAuth, requirePerfil('admin', 'coordenacao', 'direcao')
   if (statusNorm) qs.set('status', statusNorm);
   qs.set('per_page', String(paginado.per_page));
 
-  const pageWindowStart = Math.max(1, paginado.page - 2);
-  const pageWindowEnd = Math.min(paginado.total_pages, pageWindowStart + 4);
-  const pageStart = Math.max(1, pageWindowEnd - 4);
-  const paginas = [];
-  for (let p = pageStart; p <= pageWindowEnd; p += 1) paginas.push(p);
-
   res.render('alunos/index', {
     titulo: 'Alunos',
     alunos: paginado.items,
@@ -643,7 +661,7 @@ app.get('/alunos', requireAuth, requirePerfil('admin', 'coordenacao', 'direcao')
       page: paginado.page,
       per_page: paginado.per_page,
       total_pages: paginado.total_pages,
-      paginas,
+      paginas: buildPaginationPages(paginado.page, paginado.total_pages),
     },
     queryBase: qs.toString(),
     sucesso: req.query.sucesso,
@@ -972,6 +990,7 @@ app.get('/projetos/:id/alunos', requireAuth, requirePerfil('admin'), async (req,
   const periodoRaw = String(req.query.periodo || '').trim();
   const letraProjetoRaw = String(req.query.letra_projeto || '').trim().toUpperCase();
   const letraDisponiveisRaw = String(req.query.letra_disponiveis || '').trim().toUpperCase();
+  const pageRelatorioRaw = req.query.page_relatorio;
   const periodo = /^[0-9]{4}-[0-9]{2}$/.test(periodoRaw)
     ? periodoRaw
     : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -993,7 +1012,8 @@ app.get('/projetos/:id/alunos', requireAuth, requirePerfil('admin'), async (req,
   const letraDisponiveis = letrasDisponiveis.includes(letraDisponiveisRaw) ? letraDisponiveisRaw : (letrasDisponiveis[0] || '');
   const alunosDisponiveis = filtrarAlunosPorLetra(todosDisponiveis, letraDisponiveis);
   const gruposDisponiveis = agruparAlunosPorInicial(alunosDisponiveis);
-  const relatorioProjeto = await store.relatorioProjetoMes(projeto.id, Number(anoStr), Number(mesStr));
+  const relatorioProjetoCompleto = await store.relatorioProjetoMes(projeto.id, Number(anoStr), Number(mesStr));
+  const paginacaoRelatorio = paginateItems(relatorioProjetoCompleto, pageRelatorioRaw, 10);
 
   const qsProjeto = new URLSearchParams();
   qsProjeto.set('periodo', periodo);
@@ -1003,11 +1023,17 @@ app.get('/projetos/:id/alunos', requireAuth, requirePerfil('admin'), async (req,
   qsDisponiveis.set('periodo', periodo);
   if (letraProjeto) qsDisponiveis.set('letra_projeto', letraProjeto);
 
+  const qsRelatorio = new URLSearchParams();
+  qsRelatorio.set('periodo', periodo);
+  if (letraProjeto) qsRelatorio.set('letra_projeto', letraProjeto);
+  if (letraDisponiveis) qsRelatorio.set('letra_disponiveis', letraDisponiveis);
+
   res.render('projetos/alunos', {
     titulo: `Projeto: ${projeto.nome}`,
     projeto,
     periodo,
-    relatorioProjeto,
+    relatorioProjeto: paginacaoRelatorio.items,
+    paginacaoRelatorio,
     alunosProjeto,
     gruposProjeto,
     totalProjeto: todosProjeto.length,
@@ -1020,8 +1046,29 @@ app.get('/projetos/:id/alunos', requireAuth, requirePerfil('admin'), async (req,
     letraDisponiveisSelecionada: letraDisponiveis,
     queryProjetoBase: qsProjeto.toString(),
     queryDisponiveisBase: qsDisponiveis.toString(),
+    queryRelatorioBase: qsRelatorio.toString(),
     sucesso: req.query.sucesso,
     erro: req.query.erro
+  });
+});
+
+app.get('/projetos/:id/relatorio-impressao', requireAuth, requirePerfil('admin', 'coordenacao', 'direcao'), async (req, res) => {
+  const projeto = await store.getProjeto(req.params.id);
+  if (!projeto) return res.redirect('/projetos');
+
+  const now = new Date();
+  const periodoRaw = String(req.query.periodo || '').trim();
+  const periodo = /^[0-9]{4}-[0-9]{2}$/.test(periodoRaw)
+    ? periodoRaw
+    : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const [anoStr, mesStr] = periodo.split('-');
+  const relatorioProjeto = await store.relatorioProjetoMes(projeto.id, Number(anoStr), Number(mesStr));
+
+  res.render('projetos/relatorio-impressao', {
+    titulo: `Relatório do Projeto ${projeto.nome}`,
+    projeto,
+    periodo,
+    relatorioProjeto,
   });
 });
 

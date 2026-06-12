@@ -13,7 +13,10 @@
     <h4 style="margin: 0;">Frequência do Projeto</h4>
     <form method="get" action="/projetos/<%= projeto.id %>/alunos" style="display:flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
       <input type="month" name="periodo" class="form-control" value="<%= periodo %>" style="max-width: 180px;">
+      <input type="hidden" name="letra_projeto" value="<%= letraProjetoSelecionada %>">
+      <input type="hidden" name="letra_disponiveis" value="<%= letraDisponiveisSelecionada %>">
       <button type="submit" class="btn btn-sm btn-primary">Atualizar</button>
+      <a href="/projetos/<%= projeto.id %>/relatorio-impressao?periodo=<%= periodo %>" class="btn btn-sm btn-outline" target="_blank" rel="noopener noreferrer">Imprimir / PDF</a>
     </form>
   </div>
   <div class="card-body">
@@ -52,6 +55,34 @@
           </tbody>
         </table>
       </div>
+
+      <% if (paginacaoRelatorio) { %>
+        <% const qsRelatorioPrefix = queryRelatorioBase && queryRelatorioBase.length ? (queryRelatorioBase + '&') : ''; %>
+        <div class="pagination-toolbar">
+          <div class="pagination-summary">
+            Página <%= paginacaoRelatorio.page %> de <%= paginacaoRelatorio.total_pages %> • Total: <%= paginacaoRelatorio.total %> alunos
+          </div>
+          <div class="pagination-actions">
+            <% if (paginacaoRelatorio.page > 1) { %>
+              <a class="btn btn-sm btn-secondary" href="/projetos/<%= projeto.id %>/alunos?<%= qsRelatorioPrefix %>page_relatorio=<%= paginacaoRelatorio.page - 1 %>">Anterior</a>
+            <% } else { %>
+              <span class="btn btn-sm btn-secondary" style="opacity:0.5; pointer-events:none;">Anterior</span>
+            <% } %>
+            <% paginacaoRelatorio.paginas.forEach(function(pagina) { %>
+              <% if (pagina === paginacaoRelatorio.page) { %>
+                <span class="btn btn-sm btn-primary" style="pointer-events:none;"><%= pagina %></span>
+              <% } else { %>
+                <a class="btn btn-sm btn-outline" href="/projetos/<%= projeto.id %>/alunos?<%= qsRelatorioPrefix %>page_relatorio=<%= pagina %>"><%= pagina %></a>
+              <% } %>
+            <% }) %>
+            <% if (paginacaoRelatorio.page < paginacaoRelatorio.total_pages) { %>
+              <a class="btn btn-sm btn-secondary" href="/projetos/<%= projeto.id %>/alunos?<%= qsRelatorioPrefix %>page_relatorio=<%= paginacaoRelatorio.page + 1 %>">Próxima</a>
+            <% } else { %>
+              <span class="btn btn-sm btn-secondary" style="opacity:0.5; pointer-events:none;">Próxima</span>
+            <% } %>
+          </div>
+        </div>
+      <% } %>
     <% } %>
   </div>
 </div>
