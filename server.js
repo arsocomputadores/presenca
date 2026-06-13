@@ -84,6 +84,76 @@ function getTodayYmdLocal() {
   return local.toISOString().slice(0, 10);
 }
 
+const DIAS_SEMANA = [
+  { value: 'segunda', label: 'Segunda-feira', day: 1 },
+  { value: 'terca', label: 'Terca-feira', day: 2 },
+  { value: 'quarta', label: 'Quarta-feira', day: 3 },
+  { value: 'quinta', label: 'Quinta-feira', day: 4 },
+  { value: 'sexta', label: 'Sexta-feira', day: 5 },
+];
+
+function getDiaSemanaInfo(dataStr) {
+  if (!dataStr) return null;
+  const [ano, mes, dia] = String(dataStr).split('-').map(Number);
+  if (!ano || !mes || !dia) return null;
+  const data = new Date(ano, mes - 1, dia);
+  const weekday = data.getDay();
+  return DIAS_SEMANA.find((item) => item.day === weekday) || null;
+}
+
+function normalizeHorario(value) {
+  return Number(value) === 6 ? 6 : 1;
+}
+
+function getMensagemAcessoHorario(horario, dataStr) {
+  const diaSemana = getDiaSemanaInfo(dataStr);
+  if (diaSemana) {
+    return `Você não está designado para lançar a frequência desta turma na ${diaSemana.label} no ${horario}º horário. Verifique o professor marcado na turma.`;
+  }
+  return `Você não está designado para lançar a frequência desta turma no ${horario}º horário. Verifique o professor marcado na turma.`;
+}
+
+async function getProfessoresAtivosSafe() {
+  if (typeof store.getProfessoresAtivos !== 'function') return [];
+  return store.getProfessoresAtivos();
+}
+
+async function getTurmasDisponiveisFrequencia(usuario, horario, dataStr) {
+  if (usuario?.perfil === 'professor' && typeof store.getTurmasProfessorHorario === 'function') {
+    return store.getTurmasProfessorHorario(usuario.id, horario, dataStr);
+  }
+  return store.getTurmas(usuario?.perfil === 'professor' ? usuario.id : null);
+}
+
+function mergeTurmasById(...listas) {
+  const mapa = new Map();
+  listas.flat().forEach((turma) => {
+    if (turma && !mapa.has(turma.id)) mapa.set(turma.id, turma);
+  });
+  return [...mapa.values()].sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'));
+}
+
+async function getTurmasProfessorPorData(usuario, dataStr) {
+  if (!usuario || usuario.perfil !== 'professor') return store.getTurmas();
+  if (typeof store.getTurmasProfessorHorario !== 'function') {
+    return store.getTurmas(usuario.id);
+  }
+  const [turmasPrimeiro, turmasSexto] = await Promise.all([
+    store.getTurmasProfessorHorario(usuario.id, 1, dataStr),
+    store.getTurmasProfessorHorario(usuario.id, 6, dataStr),
+  ]);
+  return mergeTurmasById(turmasPrimeiro, turmasSexto);
+}
+
+async function getHorariosDisponiveisProfessor(usuarioId, turmaId, dataStr) {
+  if (!usuarioId || !turmaId || typeof store.usuarioPodeLancarHorarioNaTurma !== 'function') return [];
+  const [podePrimeiro, podeSexto] = await Promise.all([
+    store.usuarioPodeLancarHorarioNaTurma(usuarioId, turmaId, 1, dataStr),
+    store.usuarioPodeLancarHorarioNaTurma(usuarioId, turmaId, 6, dataStr),
+  ]);
+  return [podePrimeiro ? 1 : null, podeSexto ? 6 : null].filter(Boolean);
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -803,6 +873,8 @@ app.get('/turmas/nova', requireAuth, requirePerfil('admin'), async (req, res) =>
   res.render('turmas/form', {
     titulo: 'Nova turma',
     turma: null,
+    diasSemana: DIAS_SEMANA,
+    professores: await getProfessoresAtivosSafe(),
     erro: null,
   });
 });
@@ -818,6 +890,8 @@ app.post('/turmas', requireAuth, requirePerfil('admin'), async (req, res) => {
     res.render('turmas/form', {
       titulo: 'Nova turma',
       turma: req.body,
+      diasSemana: DIAS_SEMANA,
+      professores: await getProfessoresAtivosSafe(),
       erro: err.message,
     });
   }
@@ -840,6 +914,8 @@ app.get('/turmas/:id/editar', requireAuth, requirePerfil('admin'), async (req, r
   res.render('turmas/form', {
     titulo: 'Editar turma',
     turma,
+    diasSemana: DIAS_SEMANA,
+    professores: await getProfessoresAtivosSafe(),
     erro: null,
   });
 });
@@ -852,6 +928,8 @@ app.post('/turmas/:id', requireAuth, requirePerfil('admin'), async (req, res) =>
     res.render('turmas/form', {
       titulo: 'Editar turma',
       turma: { ...req.body, id: req.params.id },
+      diasSemana: DIAS_SEMANA,
+      professores: await getProfessoresAtivosSafe(),
       erro: err.message,
     });
   }
@@ -859,22 +937,42 @@ app.post('/turmas/:id', requireAuth, requirePerfil('admin'), async (req, res) =>
 
 // --- Frequência ---
 app.get('/frequencia', requireAuth, requirePerfil('admin', 'professor'), async (req, res) => {
-  const turmas = await store.getTurmas(req.session.usuario.perfil === 'professor' ? req.session.usuario.id : null);
-  
-  let turmaId = req.query.turma_id ? Number(req.query.turma_id) : turmas[0]?.id;
-  let horario = req.query.horario ? Number(req.query.horario) : 1; // 1º ou 6º horário
-  
-  // Segurança: verificar se o professor tem acesso a essa turma
+  const data = req.query.data || getTodayYmdLocal();
+  let horario = normalizeHorario(req.query.horario);
+  const diaSemanaAtual = getDiaSemanaInfo(data);
+  let turmas = await getTurmasDisponiveisFrequencia(req.session.usuario, horario, data);
+  let horariosDisponiveis = req.session.usuario.perfil === 'professor' ? [] : [1, 6];
+  const turmaIdSolicitada = req.query.turma_id ? Number(req.query.turma_id) : null;
+  let turmaId = turmaIdSolicitada || turmas[0]?.id || null;
+  let erroHorario = null;
+
   if (req.session.usuario.perfil === 'professor') {
-    const temAcesso = turmas.some(t => t.id === turmaId);
-    if (!temAcesso && turmas.length > 0) {
-      turmaId = turmas[0].id;
-    } else if (turmas.length === 0) {
-      return res.render('error', { titulo: 'Acesso negado', mensagem: 'Você não possui turmas vinculadas.' });
+    turmas = await getTurmasProfessorPorData(req.session.usuario, data);
+    turmaId = turmaIdSolicitada || turmas[0]?.id || null;
+    const temTurma = turmaId ? turmas.some((t) => t.id === turmaId) : false;
+    if (turmaId && !temTurma) {
+      turmaId = turmas[0]?.id || null;
+    }
+    horariosDisponiveis = turmaId
+      ? await getHorariosDisponiveisProfessor(req.session.usuario.id, turmaId, data)
+      : [];
+    if (horariosDisponiveis.length && !horariosDisponiveis.includes(horario)) {
+      horario = horariosDisponiveis[0];
+    }
+    if (turmaId && !horariosDisponiveis.length) {
+      erroHorario = diaSemanaAtual
+        ? `Nenhum horário está liberado para você nesta turma na ${diaSemanaAtual.label}.`
+        : 'Nenhum horário está liberado para você nesta turma.';
+    } else if (!turmaId && turmas.length === 0) {
+      erroHorario = diaSemanaAtual
+        ? `Nenhuma turma está marcada para você na ${diaSemanaAtual.label}.`
+        : 'Nenhuma turma está marcada para você.';
     }
   }
 
-  const data = req.query.data || getTodayYmdLocal();
+  const turmaSelecionada = turmaId
+    ? turmas.find((t) => t.id === turmaId) || await store.getTurma(turmaId)
+    : null;
   const jaLancada = turmaId ? await store.frequenciaJaLancada(turmaId, data, horario) : false;
   const alunos = turmaId && !jaLancada ? await store.getFrequenciaTurma(turmaId, data, horario) : [];
 
@@ -882,26 +980,30 @@ app.get('/frequencia', requireAuth, requirePerfil('admin', 'professor'), async (
     titulo: 'Lançar frequência',
     turmas,
     turmaId,
+    turmaSelecionada,
     data,
+    diaSemanaAtual,
     horario,
+    horariosDisponiveis,
     alunos,
     jaLancada,
     sucesso: req.query.sucesso,
-    erro: req.query.erro,
+    erro: req.query.erro || erroHorario,
   });
 });
 
 app.post('/frequencia', requireAuth, requirePerfil('admin', 'professor'), async (req, res) => {
   const { turma_id, data, horario, registros } = req.body;
   const tId = Number(turma_id);
-  const hId = Number(horario);
+  const hId = normalizeHorario(horario);
 
   // Segurança: verificar se o professor tem acesso a essa turma antes de salvar
   if (req.session.usuario.perfil === 'professor') {
-    const turmas = await store.getTurmas(req.session.usuario.id);
-    const temAcesso = turmas.some(t => t.id === tId);
-    if (!temAcesso) {
-      return res.status(403).render('error', { titulo: 'Acesso negado', mensagem: 'Você não tem permissão para lançar frequência nesta turma.' });
+    const podeLancar = typeof store.usuarioPodeLancarHorarioNaTurma === 'function'
+      ? await store.usuarioPodeLancarHorarioNaTurma(req.session.usuario.id, tId, hId, data)
+      : (await getTurmasDisponiveisFrequencia(req.session.usuario, hId, data)).some((t) => t.id === tId);
+    if (!podeLancar) {
+      return res.redirect(`/frequencia?data=${data}&horario=${hId}&erro=${encodeURIComponent(getMensagemAcessoHorario(hId, data))}`);
     }
   }
 

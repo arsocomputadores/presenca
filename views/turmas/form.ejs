@@ -33,6 +33,43 @@
         </div>
       </div>
 
+      <div class="alert alert-info" style="margin-top:1rem">
+        Defina o professor de cada <strong>dia da semana</strong> para o <strong>1º</strong> e o <strong>6º horário</strong>. Se algum campo ficar em branco, o sistema usa o vínculo geral da turma como fallback.
+      </div>
+
+      <div class="table-wrap" style="margin-top:1rem">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Dia da Semana</th>
+              <th>Professor do 1º horário</th>
+              <th>Professor do 6º horário</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% diasSemana.forEach(function(dia) { %>
+              <tr>
+                <td><strong><%= dia.label %></strong></td>
+                <% [1, 6].forEach(function(horario) { %>
+                  <td>
+                    <select name="professor_<%= dia.value %>_<%= horario %>">
+                      <option value="">Selecionar depois</option>
+                      <% professores.forEach(function(professor) { %>
+                        <% const valorAtual = turma?.escala_semana?.[dia.value]?.[horario]?.professor_id || turma?.['professor_' + dia.value + '_' + horario] || ''; %>
+                        <% const selecionado = String(valorAtual) === String(professor.id); %>
+                        <option value="<%= professor.id %>" <%= selecionado ? 'selected' : '' %>>
+                          <%= professor.nome %>
+                        </option>
+                      <% }) %>
+                    </select>
+                  </td>
+                <% }) %>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+
       <div style="margin-top:1.25rem;display:flex;gap:0.75rem">
         <button type="submit" class="btn btn-primary">Salvar turma</button>
         <a href="/turmas" class="btn btn-secondary">Cancelar</a>

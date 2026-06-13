@@ -33,6 +33,19 @@
           </h4>
           <div class="meta"><%= t.serie %> · <%= formatarTurno(t.turno) %> · <%= t.ano_letivo %></div>
           <div class="count"><%= t.total_alunos || 0 %> alunos</div>
+          <% [
+            ['segunda', 'Seg'],
+            ['terca', 'Ter'],
+            ['quarta', 'Qua'],
+            ['quinta', 'Qui'],
+            ['sexta', 'Sex']
+          ].forEach(function(item) { const dia = item[0]; const legenda = item[1]; %>
+            <div class="meta">
+              <strong><%= legenda %></strong>:
+              1º <strong><%= t.escala_semana?.[dia]?.[1]?.professor_nome || 'Sem marcação' %></strong> ·
+              6º <strong><%= t.escala_semana?.[dia]?.[6]?.professor_nome || 'Sem marcação' %></strong>
+            </div>
+          <% }) %>
           <div class="turma-actions">
             <a href="/frequencia?turma_id=<%= t.id %>" class="btn btn-sm btn-primary">Lançar frequência</a>
             <% if (usuario.perfil === 'admin') { %>

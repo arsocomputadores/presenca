@@ -19,6 +19,8 @@ CREATE TABLE turmas (
     turno               ENUM('manha', 'tarde', 'noite', 'integral') NOT NULL DEFAULT 'manha',
     ano_letivo          SMALLINT UNSIGNED NOT NULL,
     professor_responsavel_id INT UNSIGNED NULL COMMENT 'FK definida após criar usuarios',
+    professor_primeiro_horario_id INT UNSIGNED NULL COMMENT 'Professor responsável pelo 1º horário',
+    professor_sexto_horario_id INT UNSIGNED NULL COMMENT 'Professor responsável pelo 6º horário',
     ativa               TINYINT(1) NOT NULL DEFAULT 1,
     criado_em           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     atualizado_em       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -51,6 +53,16 @@ ALTER TABLE turmas
     FOREIGN KEY (professor_responsavel_id) REFERENCES usuarios (id)
     ON DELETE SET NULL ON UPDATE CASCADE;
 
+ALTER TABLE turmas
+    ADD CONSTRAINT fk_turmas_prof_1h
+    FOREIGN KEY (professor_primeiro_horario_id) REFERENCES usuarios (id)
+    ON DELETE SET NULL ON UPDATE CASCADE;
+
+ALTER TABLE turmas
+    ADD CONSTRAINT fk_turmas_prof_6h
+    FOREIGN KEY (professor_sexto_horario_id) REFERENCES usuarios (id)
+    ON DELETE SET NULL ON UPDATE CASCADE;
+
 -- -----------------------------------------------------------------------------
 -- Tabela: usuario_turmas (professor pode ter mais de uma turma)
 -- -----------------------------------------------------------------------------
@@ -66,6 +78,27 @@ CREATE TABLE usuario_turmas (
     CONSTRAINT fk_ut_turma FOREIGN KEY (turma_id) REFERENCES turmas (id)
         ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB COMMENT='Vínculo N:N entre professores e turmas';
+
+-- -----------------------------------------------------------------------------
+-- Tabela: turma_professores_horario
+-- Define o professor por dia da semana e horário (1º e 6º)
+-- -----------------------------------------------------------------------------
+CREATE TABLE turma_professores_horario (
+    id                  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    turma_id            INT UNSIGNED NOT NULL,
+    dia_semana          ENUM('segunda', 'terca', 'quarta', 'quinta', 'sexta') NOT NULL,
+    horario             TINYINT UNSIGNED NOT NULL COMMENT 'Horários permitidos: 1 ou 6',
+    professor_id        INT UNSIGNED NULL,
+    criado_em           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    UNIQUE KEY uk_turma_dia_horario (turma_id, dia_semana, horario),
+    INDEX idx_tph_professor (professor_id),
+    CONSTRAINT fk_tph_turma FOREIGN KEY (turma_id) REFERENCES turmas (id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_tph_professor FOREIGN KEY (professor_id) REFERENCES usuarios (id)
+        ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB COMMENT='Escala semanal de professores por turma';
 
 -- -----------------------------------------------------------------------------
 -- Tabela: mensagens internas
@@ -175,6 +208,7 @@ CREATE TABLE frequencias (
     aluno_id            INT UNSIGNED NOT NULL,
     turma_id            INT UNSIGNED NOT NULL,
     data                DATE NOT NULL,
+    horario             TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT 'Horários permitidos no sistema: 1 ou 6',
     status              ENUM('P', 'F', 'J') NOT NULL DEFAULT 'P'
                         COMMENT 'P=Presente, F=Falta, J=Justificada',
     observacao          VARCHAR(255) NULL,
@@ -182,9 +216,9 @@ CREATE TABLE frequencias (
     lancado_em          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     atualizado_em       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    UNIQUE KEY uk_frequencia_aluno_turma_data (aluno_id, turma_id, data),
+    UNIQUE KEY uk_frequencia_aluno_turma_data_horario (aluno_id, turma_id, data, horario),
     INDEX idx_frequencias_data (data),
-    INDEX idx_frequencias_turma_data (turma_id, data),
+    INDEX idx_frequencias_turma_data (turma_id, data, horario),
     INDEX idx_frequencias_aluno_data (aluno_id, data),
     INDEX idx_frequencias_status (status),
 

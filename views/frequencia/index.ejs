@@ -22,13 +22,23 @@
           <label for="data">Data</label>
           <input type="date" name="data" id="data" value="<%= data %>" onchange="this.form.submit()">
         </div>
-        <div class="form-group">
-          <label for="horario">Horário</label>
-          <select name="horario" id="horario" onchange="this.form.submit()">
-            <option value="1" <%= horario == 1 ? 'selected' : '' %>>1º Horário</option>
-            <option value="6" <%= horario == 6 ? 'selected' : '' %>>6º Horário</option>
-          </select>
-        </div>
+        <% if (!(usuario.perfil === 'professor' && horariosDisponiveis.length === 1)) { %>
+          <div class="form-group">
+            <label for="horario">Horário</label>
+            <% if (usuario.perfil === 'professor' && horariosDisponiveis.length === 0) { %>
+              <input type="hidden" name="horario" value="<%= horario %>">
+              <input type="text" value="Sem horário liberado" readonly>
+            <% } else { %>
+              <select name="horario" id="horario" onchange="this.form.submit()">
+                <% (usuario.perfil === 'professor' ? horariosDisponiveis : [1, 6]).forEach(function(h) { %>
+                  <option value="<%= h %>" <%= horario == h ? 'selected' : '' %>><%= h %>º Horário</option>
+                <% }) %>
+              </select>
+            <% } %>
+          </div>
+        <% } else { %>
+          <input type="hidden" name="horario" value="<%= horario %>">
+        <% } %>
       </form>
 
       <div class="freq-legend">
@@ -36,6 +46,21 @@
         <span><i class="dot dot-F"></i> F — Falta</span>
         <span><i class="dot dot-J"></i> J — Justificada</span>
       </div>
+
+      <% if (diaSemanaAtual) { %>
+        <div class="alert alert-info" style="margin-top:0.75rem">
+          Dia selecionado: <strong><%= diaSemanaAtual.label %></strong>.
+        </div>
+      <% } %>
+
+      <% if (turmaSelecionada) { %>
+        <div class="alert alert-info" style="margin-top:0.75rem">
+          Professor do <strong>1º horário</strong>:
+          <strong><%= diaSemanaAtual ? (turmaSelecionada.escala_semana?.[diaSemanaAtual.value]?.[1]?.professor_nome || turmaSelecionada.professor_primeiro_horario_nome || 'sem marcação específica') : (turmaSelecionada.professor_primeiro_horario_nome || 'sem marcação específica') %></strong>.
+          Professor do <strong>6º horário</strong>:
+          <strong><%= diaSemanaAtual ? (turmaSelecionada.escala_semana?.[diaSemanaAtual.value]?.[6]?.professor_nome || turmaSelecionada.professor_sexto_horario_nome || 'sem marcação específica') : (turmaSelecionada.professor_sexto_horario_nome || 'sem marcação específica') %></strong>.
+        </div>
+      <% } %>
     </div>
 
     <% if (jaLancada) { %>
@@ -43,6 +68,8 @@
         A frequência desta turma já foi lançada para o <strong><%= horario %>º horário</strong> em <strong><%= formatarData(data) %></strong>.
         Escolha outro horário ou outra data para continuar.
       </div>
+    <% } else if (!turmaSelecionada) { %>
+      <p style="color:var(--muted)">Selecione uma turma para lançar a frequência.</p>
     <% } else if (alunos.length === 0) { %>
       <p style="color:var(--muted)">Nenhum aluno ativo nesta turma.</p>
     <% } else { %>
