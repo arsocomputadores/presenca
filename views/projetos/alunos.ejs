@@ -3,15 +3,15 @@
 <% if (sucesso) { %><div class="alert alert-success"><%= sucesso %></div><% } %>
 <% if (erro) { %><div class="alert alert-error"><%= erro %></div><% } %>
 
-<div class="card-header" style="margin-bottom: 1.5rem;">
+<div class="card-header page-header-actions" style="margin-bottom: 1.5rem;">
   <h3>Gerenciar Alunos — <%= projeto.nome %></h3>
   <a href="/projetos" class="btn btn-sm btn-outline">Voltar para Projetos</a>
 </div>
 
 <div class="card" style="margin-bottom: 1.5rem;">
-  <div class="card-header" style="display:flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+  <div class="card-header page-header-actions">
     <h4 style="margin: 0;">Frequência do Projeto</h4>
-    <form method="get" action="/projetos/<%= projeto.id %>/alunos" style="display:flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+    <form method="get" action="/projetos/<%= projeto.id %>/alunos" class="mobile-inline-form">
       <input type="month" name="periodo" class="form-control" value="<%= periodo %>" style="max-width: 180px;">
       <input type="hidden" name="letra_projeto" value="<%= letraProjetoSelecionada %>">
       <input type="hidden" name="letra_disponiveis" value="<%= letraDisponiveisSelecionada %>">

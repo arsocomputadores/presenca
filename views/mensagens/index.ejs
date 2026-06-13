@@ -6,7 +6,7 @@
 <div class="card">
   <div class="card-header">
     <h3>Mensagens internas</h3>
-    <div style="display:flex; gap:0.75rem; flex-wrap:wrap">
+    <div class="inline-actions">
       <% if (usuario && ['admin', 'coordenacao', 'direcao'].includes(usuario.perfil)) { %>
         <a href="/mensagens/nova" class="btn btn-primary">Nova mensagem</a>
       <% } %>
@@ -30,7 +30,7 @@
                   <span>Enviada em <%= new Date(m.criado_em).toLocaleString('pt-BR') %></span>
                 </div>
               </div>
-              <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+              <div class="inline-actions" style="align-items:center;">
                 <% if (m.lida_em) { %>
                   <span class="badge badge-success">Lida</span>
                 <% } else { %>

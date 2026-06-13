@@ -34,8 +34,8 @@
                 <% } %>
               </td>
               <td><span class="badge badge-success"><%= p.total_alunos %> alunos</span></td>
-              <td>
-                <div style="display: flex; gap: 0.5rem;">
+              <td class="actions-cell" data-label="Ações">
+                <div class="inline-actions">
                   <% if (usuario.perfil === 'admin') { %>
                     <a href="/projetos/<%= p.id %>/alunos" class="btn btn-sm btn-primary">Selecionar alunos</a>
                     <a href="/projetos/<%= p.id %>/editar" class="btn btn-sm btn-secondary">Editar</a>

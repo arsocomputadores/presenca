@@ -8,17 +8,18 @@
     <h3>Relatórios de Lançamentos Diários</h3>
   </div>
   <div class="card-body">
-    <div style="display:flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-      <form method="get" action="/relatorios" class="form-grid" style="margin-bottom:0">
+    <div class="report-toolbar">
+      <form method="get" action="/relatorios" class="form-grid report-filter-form" style="margin-bottom:0">
         <div class="form-group" style="margin-bottom:0">
           <label for="data">Data de referência</label>
-          <div style="display:flex; gap:0.5rem">
+          <div class="mobile-inline-form">
             <input type="date" name="data" id="data" value="<%= data %>" class="form-control">
             <button type="submit" class="btn btn-primary">Filtrar</button>
           </div>
         </div>
       </form>
       
+      <div class="report-toolbar-actions">
       <a href="/relatorios/exportar/excel?data=<%= data %>" class="btn btn-secondary no-print">
          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="vertical-align: middle; margin-right: 0.25rem;">
            <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"/>
@@ -35,6 +36,7 @@
           <button type="submit" class="btn btn-danger">Limpar histórico</button>
         </form>
       <% } %>
+      </div>
      </div>
 
     <% if (lancamentos.length === 0) { %>

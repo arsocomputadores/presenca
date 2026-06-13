@@ -3,7 +3,7 @@
 <% if (typeof sucesso !== 'undefined' && sucesso) { %><div class="alert alert-success"><%= sucesso %></div><% } %>
 <% if (typeof erro !== 'undefined' && erro) { %><div class="alert alert-error"><%= erro %></div><% } %>
 
-<div class="card-header" style="margin-bottom: 1rem;">
+<div class="card-header page-header-actions" style="margin-bottom: 1rem;">
   <h3>Usuários / Professores</h3>
   <% if (usuario.perfil === 'admin') { %>
     <a href="/usuarios/novo" class="btn btn-primary">Novo Usuário</a>
@@ -37,9 +37,9 @@
                 <span class="text-muted">Nenhuma</span>
               <% } %>
             </td>
-            <td>
+            <td class="actions-cell" data-label="Ações">
               <% if (usuario.perfil === 'admin') { %>
-                <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+                <div class="inline-actions">
                   <a href="/usuarios/<%= u.id %>/editar" class="btn btn-sm btn-secondary">Editar</a>
                   <% if (u.id !== usuario.id) { %>
                     <form action="/usuarios/<%= u.id %>/excluir" method="post" style="display:inline" onsubmit="return confirm('Excluir este usuário? Ele ficará inativo e não conseguirá mais acessar o sistema.');">

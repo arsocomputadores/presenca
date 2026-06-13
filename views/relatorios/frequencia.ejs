@@ -5,7 +5,7 @@
     <h3>Frequência Mensal por Turma</h3>
   </div>
   <div class="card-body">
-    <form method="get" action="/relatorios/frequencia" class="form-grid no-print" style="margin-bottom: 2rem;">
+    <form method="get" action="/relatorios/frequencia" class="form-grid no-print report-filter-form" style="margin-bottom: 2rem;">
       <div class="form-group">
         <label for="turma_id">Turma</label>
         <select name="turma_id" id="turma_id">
@@ -31,7 +31,7 @@
           <% } %>
         </select>
       </div>
-      <div style="display:flex; align-items:flex-end; gap:0.5rem">
+      <div class="report-toolbar-actions report-inline-actions">
         <button type="submit" class="btn btn-primary">Gerar Relatório</button>
         <% if (turmaId) { %>
           <a href="/relatorios/frequencia/exportar?turma_id=<%= turmaId %>&mes=<%= mes %>&ano=<%= ano %>" class="btn btn-secondary">Excel</a>
