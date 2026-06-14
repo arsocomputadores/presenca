@@ -8,6 +8,11 @@
     <h3>Relatórios de Lançamentos Diários</h3>
   </div>
   <div class="card-body">
+    <% 
+      const totalPendencias = (pendencias || []).filter((p) => p.status === 'pendente').length;
+      const totalSemResponsavel = (pendencias || []).filter((p) => p.status === 'sem_responsavel').length;
+      const totalLancados = (pendencias || []).filter((p) => p.status === 'lancado').length;
+    %>
     <div class="report-toolbar">
       <form method="get" action="/relatorios" class="form-grid report-filter-form" style="margin-bottom:0">
         <div class="form-group" style="margin-bottom:0">
@@ -38,6 +43,21 @@
       <% } %>
       </div>
      </div>
+
+    <div class="stats-grid" style="margin-top:1rem">
+      <div class="stat-card">
+        <div class="label">Lançamentos Identificados</div>
+        <div class="value"><%= totalLancados %></div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Pendências do Dia</div>
+        <div class="value"><%= totalPendencias %></div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Sem Professor Definido</div>
+        <div class="value"><%= totalSemResponsavel %></div>
+      </div>
+    </div>
 
     <% if (lancamentos.length === 0) { %>
       <div class="alert alert-warning" style="margin-top: 1rem;">
@@ -71,6 +91,54 @@
         </table>
       </div>
     <% } %>
+
+    <div class="card" style="margin-top:1.5rem">
+      <div class="card-header">
+        <h3>Pendências do Dia</h3>
+      </div>
+      <div class="card-body">
+        <% if (!pendencias || pendencias.length === 0) { %>
+          <div class="alert alert-info">
+            Não há pendências registradas para <%= formatarData(data) %>.
+          </div>
+        <% } else { %>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Turma</th>
+                  <th>Turno</th>
+                  <th>Horário</th>
+                  <th>Professor Responsável</th>
+                  <th>Status</th>
+                  <th>Lançado Por</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% pendencias.forEach(function(item) { %>
+                  <tr>
+                    <td data-label="Turma"><strong><%= item.turma_nome %></strong></td>
+                    <td data-label="Turno"><%= formatarTurno(item.turno) %></td>
+                    <td data-label="Horário"><span class="badge badge-info"><%= item.horario %>º Horário</span></td>
+                    <td data-label="Professor Responsável"><%= item.professor_nome || 'Sem professor definido' %></td>
+                    <td data-label="Status">
+                      <% if (item.status === 'pendente') { %>
+                        <span class="badge badge-danger">Pendente</span>
+                      <% } else if (item.status === 'lancado') { %>
+                        <span class="badge badge-success">Lançado</span>
+                      <% } else { %>
+                        <span class="badge badge-warning">Sem responsável</span>
+                      <% } %>
+                    </td>
+                    <td data-label="Lançado Por"><%= item.lancado_por || '—' %></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+      </div>
+    </div>
   </div>
 </div>
 

@@ -137,6 +137,26 @@ CREATE TABLE mensagem_destinatarios (
 ) ENGINE=InnoDB COMMENT='Destinatários e status de leitura das mensagens internas';
 
 -- -----------------------------------------------------------------------------
+-- Tabela: alertas_frequencia_automaticos
+-- Evita duplicidade dos avisos automáticos por professor e data
+-- -----------------------------------------------------------------------------
+CREATE TABLE alertas_frequencia_automaticos (
+    id                  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    referencia_data     DATE NOT NULL,
+    destinatario_id     INT UNSIGNED NOT NULL,
+    mensagem_id         INT UNSIGNED NULL,
+    total_pendencias    SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    criado_em           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE KEY uk_alerta_freq_auto (referencia_data, destinatario_id),
+    INDEX idx_afa_destinatario (destinatario_id),
+    CONSTRAINT fk_afa_destinatario FOREIGN KEY (destinatario_id) REFERENCES usuarios (id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_afa_mensagem FOREIGN KEY (mensagem_id) REFERENCES mensagens (id)
+        ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB COMMENT='Controle de avisos automáticos por falta de lançamento';
+
+-- -----------------------------------------------------------------------------
 -- Tabela: alunos
 -- codigo: número de no máximo 8 dígitos, exibido antes do nome
 -- -----------------------------------------------------------------------------

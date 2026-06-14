@@ -91,6 +91,8 @@ const DIAS_SEMANA = [
   { value: 'quinta', label: 'Quinta-feira', day: 4 },
   { value: 'sexta', label: 'Sexta-feira', day: 5 },
 ];
+const HORA_ALERTA_PENDENCIA = Math.min(23, Math.max(0, Number.parseInt(process.env.HORA_ALERTA_PENDENCIA || '18', 10) || 18));
+const MINUTO_ALERTA_PENDENCIA = Math.min(59, Math.max(0, Number.parseInt(process.env.MINUTO_ALERTA_PENDENCIA || '0', 10) || 0));
 
 function getDiaSemanaInfo(dataStr) {
   if (!dataStr) return null;
@@ -99,6 +101,12 @@ function getDiaSemanaInfo(dataStr) {
   const data = new Date(ano, mes - 1, dia);
   const weekday = data.getDay();
   return DIAS_SEMANA.find((item) => item.day === weekday) || null;
+}
+
+function jaPassouHorarioAlerta(now = new Date()) {
+  const minutosAtuais = now.getHours() * 60 + now.getMinutes();
+  const minutosCorte = HORA_ALERTA_PENDENCIA * 60 + MINUTO_ALERTA_PENDENCIA;
+  return minutosAtuais >= minutosCorte;
 }
 
 function normalizeHorario(value) {
@@ -178,6 +186,25 @@ app.use(
 app.use((req, res, next) => {
   if (req.session?.usuario) {
     req.session.ultimo_acesso_em = Date.now();
+  }
+  next();
+});
+
+app.use(async (req, res, next) => {
+  if (!req.session?.usuario || typeof store.processarAvisosPendenciaFrequenciaAutomaticos !== 'function') {
+    return next();
+  }
+
+  const hoje = getTodayYmdLocal();
+  const diaSemanaHoje = getDiaSemanaInfo(hoje);
+  if (!diaSemanaHoje || !jaPassouHorarioAlerta()) {
+    return next();
+  }
+
+  try {
+    await store.processarAvisosPendenciaFrequenciaAutomaticos(hoje);
+  } catch (err) {
+    console.error('Falha ao processar avisos automáticos de pendência de frequência:', err.message);
   }
   next();
 });
@@ -1234,11 +1261,17 @@ const ExcelJS = require('exceljs');
 // --- Relatórios ---
 app.get('/relatorios', requireAuth, requirePerfil('admin', 'coordenacao', 'direcao'), async (req, res) => {
   const data = req.query.data || getTodayYmdLocal();
-  const lancamentos = await store.relatorioLancamentosDia(data);
+  const [lancamentos, pendencias] = await Promise.all([
+    store.relatorioLancamentosDia(data),
+    typeof store.relatorioPendenciasLancamentoDia === 'function'
+      ? store.relatorioPendenciasLancamentoDia(data)
+      : [],
+  ]);
   res.render('relatorios/index', {
     titulo: 'Relatórios de Lançamentos',
     data,
     lancamentos,
+    pendencias,
     sucesso: req.query.sucesso || null,
     erro: req.query.erro || null,
   });
@@ -1255,7 +1288,12 @@ app.post('/frequencias/limpar', requireAuth, requirePerfil('admin'), async (req,
 
 app.get('/relatorios/exportar/excel', requireAuth, requirePerfil('admin', 'coordenacao', 'direcao'), async (req, res) => {
   const data = req.query.data || getTodayYmdLocal();
-  const lancamentos = await store.relatorioLancamentosDia(data);
+  const [lancamentos, pendencias] = await Promise.all([
+    store.relatorioLancamentosDia(data),
+    typeof store.relatorioPendenciasLancamentoDia === 'function'
+      ? store.relatorioPendenciasLancamentoDia(data)
+      : [],
+  ]);
   
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('Lançamentos');
@@ -1275,6 +1313,31 @@ app.get('/relatorios/exportar/excel', requireAuth, requirePerfil('admin', 'coord
       horario: l.horario + 'º',
       usuario_nome: l.lancado_por,
       lancado_em: res.locals.formatarData(l.data_lancamento) + ' ' + new Date(l.data_lancamento).toLocaleTimeString('pt-BR')
+    });
+  });
+
+  const pendenciasSheet = workbook.addWorksheet('Pendências');
+  pendenciasSheet.columns = [
+    { header: 'Turma', key: 'turma_nome', width: 22 },
+    { header: 'Turno', key: 'turno', width: 15 },
+    { header: 'Horário', key: 'horario', width: 12 },
+    { header: 'Professor Responsável', key: 'professor_nome', width: 28 },
+    { header: 'Status', key: 'status', width: 18 },
+    { header: 'Lançado Por', key: 'lancado_por', width: 24 },
+  ];
+
+  pendencias.forEach((item) => {
+    pendenciasSheet.addRow({
+      turma_nome: item.turma_nome,
+      turno: res.locals.formatarTurno(item.turno),
+      horario: `${item.horario}º`,
+      professor_nome: item.professor_nome || 'Sem professor definido',
+      status: item.status === 'pendente'
+        ? 'Pendente'
+        : item.status === 'lancado'
+          ? 'Lançado'
+          : 'Sem responsável',
+      lancado_por: item.lancado_por || '—',
     });
   });
 
