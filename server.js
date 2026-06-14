@@ -162,6 +162,13 @@ async function getHorariosDisponiveisProfessor(usuarioId, turmaId, dataStr) {
   return [podePrimeiro ? 1 : null, podeSexto ? 6 : null].filter(Boolean);
 }
 
+async function getConfiguracaoAvisoPendenciaSafe() {
+  if (typeof store.getConfiguracaoAvisoPendenciaFrequencia !== 'function') {
+    return { ativo: false, atualizado_em: null };
+  }
+  return store.getConfiguracaoAvisoPendenciaFrequencia();
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -202,6 +209,10 @@ app.use(async (req, res, next) => {
   }
 
   try {
+    const configuracaoAviso = await getConfiguracaoAvisoPendenciaSafe();
+    if (!configuracaoAviso.ativo) {
+      return next();
+    }
     await store.processarAvisosPendenciaFrequenciaAutomaticos(hoje);
   } catch (err) {
     console.error('Falha ao processar avisos automáticos de pendência de frequência:', err.message);
@@ -537,9 +548,37 @@ app.post('/logout', (req, res) => {
 
 // --- Dashboard ---
 app.get('/', requireAuth, async (req, res) => {
-  const stats = await store.getDashboardStats(req.session.usuario.id, req.session.usuario.perfil);
+  const [stats, configuracaoAvisoPendencia] = await Promise.all([
+    store.getDashboardStats(req.session.usuario.id, req.session.usuario.perfil),
+    req.session.usuario.perfil === 'admin'
+      ? getConfiguracaoAvisoPendenciaSafe()
+      : Promise.resolve(null),
+  ]);
   const turmas = await store.getTurmas(req.session.usuario.perfil === 'professor' ? req.session.usuario.id : null);
-  res.render('dashboard', { stats, turmas, titulo: 'Painel' });
+  res.render('dashboard', {
+    stats,
+    turmas,
+    titulo: 'Painel',
+    configuracaoAvisoPendencia,
+    sucesso: req.query.sucesso || null,
+    erro: req.query.erro || null,
+  });
+});
+
+app.post('/admin/configuracoes/alerta-pendencia-frequencia', requireAuth, requirePerfil('admin'), async (req, res) => {
+  try {
+    if (typeof store.setConfiguracaoAvisoPendenciaFrequencia !== 'function') {
+      throw new Error('Esta configuração não está disponível neste modo do sistema.');
+    }
+    const ativo = String(req.body.ativo || '').trim() === '1';
+    await store.setConfiguracaoAvisoPendenciaFrequencia(ativo);
+    const mensagem = ativo
+      ? 'Aviso automático de pendência de frequência liberado com sucesso.'
+      : 'Aviso automático de pendência de frequência pausado com sucesso.';
+    res.redirect(`/?sucesso=${encodeURIComponent(mensagem)}`);
+  } catch (err) {
+    res.redirect(`/?erro=${encodeURIComponent(err.message || 'Erro ao atualizar a configuração do aviso automático.')}`);
+  }
 });
 
 app.get('/relatorios/frequencia', requireAuth, requirePerfil('admin', 'coordenacao', 'direcao'), async (req, res) => {

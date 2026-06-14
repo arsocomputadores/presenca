@@ -157,6 +157,16 @@ CREATE TABLE alertas_frequencia_automaticos (
 ) ENGINE=InnoDB COMMENT='Controle de avisos automáticos por falta de lançamento';
 
 -- -----------------------------------------------------------------------------
+-- Tabela: configuracoes_sistema
+-- Chaves simples de configuração operacional
+-- -----------------------------------------------------------------------------
+CREATE TABLE configuracoes_sistema (
+    chave               VARCHAR(100) PRIMARY KEY,
+    valor               VARCHAR(255) NOT NULL,
+    atualizado_em       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB COMMENT='Configurações gerais do sistema';
+
+-- -----------------------------------------------------------------------------
 -- Tabela: alunos
 -- codigo: número de no máximo 8 dígitos, exibido antes do nome
 -- -----------------------------------------------------------------------------
