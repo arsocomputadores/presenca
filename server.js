@@ -84,6 +84,31 @@ function getTodayYmdLocal() {
   return local.toISOString().slice(0, 10);
 }
 
+function parseDateTimeLocal(value) {
+  if (!value) return null;
+  if (value instanceof Date) return new Date(value.getTime());
+  const text = String(value).trim();
+  if (!text) return null;
+
+  const match = text.match(
+    /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/
+  );
+  if (match) {
+    const [, ano, mes, dia, hora = '0', minuto = '0', segundo = '0'] = match;
+    return new Date(
+      Number(ano),
+      Number(mes) - 1,
+      Number(dia),
+      Number(hora),
+      Number(minuto),
+      Number(segundo)
+    );
+  }
+
+  const parsed = new Date(text);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 const DIAS_SEMANA = [
   { value: 'segunda', label: 'Segunda-feira', day: 1 },
   { value: 'terca', label: 'Terca-feira', day: 2 },
@@ -119,6 +144,34 @@ function getMensagemAcessoHorario(horario, dataStr) {
     return `Você não está designado para lançar a frequência desta turma na ${diaSemana.label} no ${horario}º horário. Verifique o professor marcado na turma.`;
   }
   return `Você não está designado para lançar a frequência desta turma no ${horario}º horário. Verifique o professor marcado na turma.`;
+}
+
+function getLimiteLancamentoProfessor(turno, horario) {
+  const turnoNormalizado = String(turno || '').trim().toLowerCase();
+  if (turnoNormalizado === 'manha' || turnoNormalizado === 'matutino') {
+    if (Number(horario) === 1) return { hora: 9, minuto: 30, label: '9h30' };
+    if (Number(horario) === 6) return { hora: 12, minuto: 30, label: '12h30' };
+  }
+  if (turnoNormalizado === 'tarde' || turnoNormalizado === 'vespertino') {
+    if (Number(horario) === 1) return { hora: 14, minuto: 30, label: '14h30' };
+    if (Number(horario) === 6) return { hora: 18, minuto: 10, label: '18h10' };
+  }
+  return null;
+}
+
+function professorPodeLancarAteHorario(turno, horario, dataStr, now = new Date()) {
+  if (!dataStr || dataStr !== getTodayYmdLocal()) return true;
+  const limite = getLimiteLancamentoProfessor(turno, horario);
+  if (!limite) return true;
+  const minutosAtuais = now.getHours() * 60 + now.getMinutes();
+  const minutosLimite = limite.hora * 60 + limite.minuto;
+  return minutosAtuais <= minutosLimite;
+}
+
+function getMensagemLimiteLancamentoProfessor(turno, horario) {
+  const limite = getLimiteLancamentoProfessor(turno, horario);
+  if (!limite) return 'O horário limite para este lançamento foi encerrado.';
+  return `O professor só pode lançar a frequência desta turma até ${limite.label} no ${horario}º horário.`;
 }
 
 async function getProfessoresAtivosSafe() {
@@ -167,6 +220,31 @@ async function getConfiguracaoAvisoPendenciaSafe() {
     return { ativo: false, atualizado_em: null };
   }
   return store.getConfiguracaoAvisoPendenciaFrequencia();
+}
+
+async function getConfiguracaoDirecaoLancarFrequenciaSafe() {
+  if (typeof store.getConfiguracaoDirecaoLancarFrequencia !== 'function') {
+    return { ativo: false, atualizado_em: null };
+  }
+  return store.getConfiguracaoDirecaoLancarFrequencia();
+}
+
+async function usuarioPodeAcessarFrequencia(usuario) {
+  if (!usuario) return false;
+  if (usuario.perfil === 'admin' || usuario.perfil === 'professor') return true;
+  if (usuario.perfil !== 'direcao') return false;
+  const configuracao = await getConfiguracaoDirecaoLancarFrequenciaSafe();
+  return Boolean(configuracao?.ativo);
+}
+
+async function usuarioTemAcessoTurmaFrequencia(usuario, turmaId, horario, data) {
+  if (!usuario || !turmaId) return false;
+  if (usuario.perfil !== 'professor') return true;
+  if (typeof store.usuarioPodeLancarHorarioNaTurma === 'function') {
+    return store.usuarioPodeLancarHorarioNaTurma(usuario.id, turmaId, horario, data);
+  }
+  const turmas = await getTurmasDisponiveisFrequencia(usuario, horario, data);
+  return turmas.some((t) => t.id === turmaId);
 }
 
 const app = express();
@@ -225,6 +303,7 @@ app.use(async (req, res, next) => {
   res.locals.modoDemo = !isMysqlEnabled();
   res.locals.anoLetivo = new Date().getFullYear();
   res.locals.mensagensNaoLidas = 0;
+  res.locals.direcaoPodeLancarFrequencia = false;
   
   // Helper global para formatar datas no EJS
   res.locals.formatarData = (data) => {
@@ -247,6 +326,18 @@ app.use(async (req, res, next) => {
     }
     return d.toLocaleDateString('pt-BR');
   };
+
+  res.locals.formatarDataHora = (data) => {
+    const d = parseDateTimeLocal(data);
+    if (!d) return '—';
+    return d.toLocaleString('pt-BR');
+  };
+
+  res.locals.formatarHora = (data) => {
+    const d = parseDateTimeLocal(data);
+    if (!d) return '—';
+    return d.toLocaleTimeString('pt-BR');
+  };
   
   // Helper global para formatar turno no EJS
   res.locals.formatarTurno = (turno) => {
@@ -268,6 +359,15 @@ app.use(async (req, res, next) => {
       res.locals.mensagensNaoLidas = await store.contarMensagensNaoLidas(req.session.usuario.id);
     } catch (_) {
       res.locals.mensagensNaoLidas = 0;
+    }
+  }
+
+  if (req.session.usuario?.perfil === 'direcao') {
+    try {
+      const configuracaoDirecao = await getConfiguracaoDirecaoLancarFrequenciaSafe();
+      res.locals.direcaoPodeLancarFrequencia = Boolean(configuracaoDirecao?.ativo);
+    } catch (_) {
+      res.locals.direcaoPodeLancarFrequencia = false;
     }
   }
 
@@ -548,18 +648,30 @@ app.post('/logout', (req, res) => {
 
 // --- Dashboard ---
 app.get('/', requireAuth, async (req, res) => {
-  const [stats, configuracaoAvisoPendencia] = await Promise.all([
+  const dataReferenciaPainel = getTodayYmdLocal();
+  const [stats, configuracaoAvisoPendencia, configuracaoDirecaoLancamento, pendenciasPainelBase] = await Promise.all([
     store.getDashboardStats(req.session.usuario.id, req.session.usuario.perfil),
     req.session.usuario.perfil === 'admin'
       ? getConfiguracaoAvisoPendenciaSafe()
       : Promise.resolve(null),
+    req.session.usuario.perfil === 'admin'
+      ? getConfiguracaoDirecaoLancarFrequenciaSafe()
+      : Promise.resolve(null),
+    (req.session.usuario.perfil === 'admin' || req.session.usuario.perfil === 'direcao')
+      && typeof store.relatorioPendenciasLancamentoDia === 'function'
+      ? store.relatorioPendenciasLancamentoDia(dataReferenciaPainel)
+      : Promise.resolve([]),
   ]);
   const turmas = await store.getTurmas(req.session.usuario.perfil === 'professor' ? req.session.usuario.id : null);
+  const pendenciasPainel = (pendenciasPainelBase || []).filter((item) => item.status === 'pendente');
   res.render('dashboard', {
     stats,
     turmas,
     titulo: 'Painel',
     configuracaoAvisoPendencia,
+    configuracaoDirecaoLancamento,
+    dataReferenciaPainel,
+    pendenciasPainel,
     sucesso: req.query.sucesso || null,
     erro: req.query.erro || null,
   });
@@ -581,6 +693,22 @@ app.post('/admin/configuracoes/alerta-pendencia-frequencia', requireAuth, requir
   }
 });
 
+app.post('/admin/configuracoes/direcao-lancar-frequencia', requireAuth, requirePerfil('admin'), async (req, res) => {
+  try {
+    if (typeof store.setConfiguracaoDirecaoLancarFrequencia !== 'function') {
+      throw new Error('Esta configuração não está disponível neste modo do sistema.');
+    }
+    const ativo = String(req.body.ativo || '').trim() === '1';
+    await store.setConfiguracaoDirecaoLancarFrequencia(ativo);
+    const mensagem = ativo
+      ? 'Lançamento de frequência pela direção liberado com sucesso.'
+      : 'Lançamento de frequência pela direção bloqueado com sucesso.';
+    res.redirect(`/?sucesso=${encodeURIComponent(mensagem)}`);
+  } catch (err) {
+    res.redirect(`/?erro=${encodeURIComponent(err.message || 'Erro ao atualizar a permissão da direção para lançar frequência.')}`);
+  }
+});
+
 app.get('/relatorios/frequencia', requireAuth, requirePerfil('admin', 'coordenacao', 'direcao'), async (req, res) => {
   const turmas = await store.getTurmas();
   const { turma_id, mes, ano } = req.query;
@@ -590,9 +718,17 @@ app.get('/relatorios/frequencia', requireAuth, requirePerfil('admin', 'coordenac
   const tId = turma_id ? Number(turma_id) : (turmas[0]?.id || null);
 
   let dados = [];
+  let aulasDetalhadas = [];
   let turmaSelecionada = null;
   if (tId) {
-    dados = await store.getRelatorioFrequenciaTurma(tId, m, a);
+    const resultados = await Promise.all([
+      store.getRelatorioFrequenciaTurma(tId, m, a),
+      typeof store.getRelatorioFrequenciaTurmaDetalhado === 'function'
+        ? store.getRelatorioFrequenciaTurmaDetalhado(tId, m, a)
+        : Promise.resolve([]),
+    ]);
+    dados = resultados[0];
+    aulasDetalhadas = resultados[1];
     turmaSelecionada = turmas.find(t => t.id === tId);
   }
 
@@ -603,6 +739,7 @@ app.get('/relatorios/frequencia', requireAuth, requirePerfil('admin', 'coordenac
     mes: m,
     ano: a,
     dados,
+    aulasDetalhadas,
     turmaSelecionada
   });
 });
@@ -613,8 +750,11 @@ app.get('/relatorios/frequencia/exportar', requireAuth, requirePerfil('admin', '
   const a = Number(ano);
   const tId = Number(turma_id);
 
-  const [dados, turma] = await Promise.all([
+  const [dados, aulasDetalhadas, turma] = await Promise.all([
     store.getRelatorioFrequenciaTurma(tId, m, a),
+    typeof store.getRelatorioFrequenciaTurmaDetalhado === 'function'
+      ? store.getRelatorioFrequenciaTurmaDetalhado(tId, m, a)
+      : Promise.resolve([]),
     store.getTurma(tId)
   ]);
 
@@ -640,6 +780,31 @@ app.get('/relatorios/frequencia/exportar', requireAuth, requirePerfil('admin', '
       faltas: d.faltas,
       justificadas: d.justificadas,
       porcentagem: pct + '%'
+    });
+  });
+
+  const aulasSheet = workbook.addWorksheet('Aulas do Mes');
+  aulasSheet.columns = [
+    { header: 'Data', key: 'data', width: 14 },
+    { header: 'Horário', key: 'horario', width: 12 },
+    { header: 'Presenças', key: 'presencas', width: 12 },
+    { header: 'Faltas', key: 'faltas', width: 12 },
+    { header: 'Justificadas', key: 'justificadas', width: 14 },
+    { header: 'Total de Registros', key: 'total_registros', width: 16 },
+    { header: 'Lançado Por', key: 'lancado_por', width: 24 },
+    { header: 'Registrado Em', key: 'data_lancamento', width: 22 },
+  ];
+
+  aulasDetalhadas.forEach((aula) => {
+    aulasSheet.addRow({
+      data: res.locals.formatarData(aula.data),
+      horario: `${aula.horario}º`,
+      presencas: aula.presencas,
+      faltas: aula.faltas,
+      justificadas: aula.justificadas,
+      total_registros: aula.total_registros,
+      lancado_por: aula.lancado_por,
+      data_lancamento: res.locals.formatarDataHora(aula.data_lancamento),
     });
   });
 
@@ -1002,7 +1167,13 @@ app.post('/turmas/:id', requireAuth, requirePerfil('admin'), async (req, res) =>
 });
 
 // --- Frequência ---
-app.get('/frequencia', requireAuth, requirePerfil('admin', 'professor'), async (req, res) => {
+app.get('/frequencia', requireAuth, async (req, res) => {
+  if (!(await usuarioPodeAcessarFrequencia(req.session.usuario))) {
+    return res.status(403).render('error', {
+      titulo: 'Acesso negado',
+      mensagem: 'Você não tem permissão para lançar frequência.',
+    });
+  }
   const data = req.query.data || getTodayYmdLocal();
   let horario = normalizeHorario(req.query.horario);
   const diaSemanaAtual = getDiaSemanaInfo(data);
@@ -1039,8 +1210,72 @@ app.get('/frequencia', requireAuth, requirePerfil('admin', 'professor'), async (
   const turmaSelecionada = turmaId
     ? turmas.find((t) => t.id === turmaId) || await store.getTurma(turmaId)
     : null;
+
+  if (req.session.usuario.perfil === 'professor' && turmaSelecionada) {
+    const horariosDentroDoPrazo = horariosDisponiveis.filter((h) =>
+      professorPodeLancarAteHorario(turmaSelecionada.turno, h, data)
+    );
+    if (horariosDentroDoPrazo.length !== horariosDisponiveis.length) {
+      horariosDisponiveis = horariosDentroDoPrazo;
+      if (!horariosDisponiveis.includes(horario)) {
+        erroHorario = getMensagemLimiteLancamentoProfessor(turmaSelecionada.turno, horario);
+      }
+      if (horariosDisponiveis.length === 1) {
+        horario = horariosDisponiveis[0];
+      }
+    }
+  }
+
   const jaLancada = turmaId ? await store.frequenciaJaLancada(turmaId, data, horario) : false;
-  const alunos = turmaId && !jaLancada ? await store.getFrequenciaTurma(turmaId, data, horario) : [];
+  let alunos = [];
+  let solicitacaoEdicaoAtual = null;
+  let solicitacoesPendentesAdmin = [];
+  let podeEditarLancada = false;
+  let modoEdicao = false;
+  let horarioForaDoPrazo = false;
+  let solicitacaoLancamentoAtual = null;
+  let solicitacoesLancamentoPendentesAdmin = [];
+  let podeLancarForaHorario = false;
+
+  if (req.session.usuario.perfil === 'professor' && turmaSelecionada) {
+    horarioForaDoPrazo = !professorPodeLancarAteHorario(turmaSelecionada.turno, horario, data);
+  }
+
+  if (turmaId && jaLancada) {
+    if (req.session.usuario.perfil === 'admin') {
+      solicitacoesPendentesAdmin = typeof store.getSolicitacoesEdicaoFrequencia === 'function'
+        ? await store.getSolicitacoesEdicaoFrequencia(turmaId, data, horario)
+        : [];
+      modoEdicao = String(req.query.editar || '').trim() === '1';
+      podeEditarLancada = modoEdicao;
+    } else if (typeof store.getSolicitacoesEdicaoFrequencia === 'function') {
+      const solicitacoesUsuario = await store.getSolicitacoesEdicaoFrequencia(turmaId, data, horario, req.session.usuario.id);
+      solicitacaoEdicaoAtual = solicitacoesUsuario[0] || null;
+      podeEditarLancada = solicitacoesUsuario.some((item) => item.status === 'liberada');
+      modoEdicao = podeEditarLancada;
+    }
+  }
+
+  if (turmaId && !jaLancada && horarioForaDoPrazo) {
+    if (req.session.usuario.perfil === 'admin') {
+      solicitacoesLancamentoPendentesAdmin = typeof store.getSolicitacoesLancamentoForaHorario === 'function'
+        ? await store.getSolicitacoesLancamentoForaHorario(turmaId, data, horario)
+        : [];
+    } else if (req.session.usuario.perfil === 'professor') {
+      const solicitacoesUsuario = typeof store.getSolicitacoesLancamentoForaHorario === 'function'
+        ? await store.getSolicitacoesLancamentoForaHorario(turmaId, data, horario, req.session.usuario.id)
+        : [];
+      solicitacaoLancamentoAtual = solicitacoesUsuario[0] || null;
+      podeLancarForaHorario = solicitacoesUsuario.some((item) => item.status === 'liberada');
+      if (!podeLancarForaHorario && !erroHorario) {
+        erroHorario = getMensagemLimiteLancamentoProfessor(turmaSelecionada.turno, horario);
+      }
+    }
+  }
+
+  if (turmaId && (!jaLancada || podeEditarLancada) && (!horarioForaDoPrazo || req.session.usuario.perfil !== 'professor' || podeLancarForaHorario)) {
+    alunos = await store.getFrequenciaTurma(turmaId, data, horario);
+  }
 
   res.render('frequencia/index', {
     titulo: 'Lançar frequência',
@@ -1053,28 +1288,40 @@ app.get('/frequencia', requireAuth, requirePerfil('admin', 'professor'), async (
     horariosDisponiveis,
     alunos,
     jaLancada,
+    solicitacaoEdicaoAtual,
+    solicitacoesPendentesAdmin,
+    podeEditarLancada,
+    modoEdicao,
+    horarioForaDoPrazo,
+    solicitacaoLancamentoAtual,
+    solicitacoesLancamentoPendentesAdmin,
+    podeLancarForaHorario,
     sucesso: req.query.sucesso,
     erro: req.query.erro || erroHorario,
   });
 });
 
-app.post('/frequencia', requireAuth, requirePerfil('admin', 'professor'), async (req, res) => {
+app.post('/frequencia', requireAuth, async (req, res) => {
+  if (!(await usuarioPodeAcessarFrequencia(req.session.usuario))) {
+    return res.status(403).render('error', {
+      titulo: 'Acesso negado',
+      mensagem: 'Você não tem permissão para lançar frequência.',
+    });
+  }
   const { turma_id, data, horario, registros } = req.body;
   const tId = Number(turma_id);
   const hId = normalizeHorario(horario);
 
-  // Segurança: verificar se o professor tem acesso a essa turma antes de salvar
-  if (req.session.usuario.perfil === 'professor') {
-    const podeLancar = typeof store.usuarioPodeLancarHorarioNaTurma === 'function'
-      ? await store.usuarioPodeLancarHorarioNaTurma(req.session.usuario.id, tId, hId, data)
-      : (await getTurmasDisponiveisFrequencia(req.session.usuario, hId, data)).some((t) => t.id === tId);
-    if (!podeLancar) {
-      return res.redirect(`/frequencia?data=${data}&horario=${hId}&erro=${encodeURIComponent(getMensagemAcessoHorario(hId, data))}`);
-    }
+  if (!(await usuarioTemAcessoTurmaFrequencia(req.session.usuario, tId, hId, data))) {
+    return res.redirect(`/frequencia?data=${data}&horario=${hId}&erro=${encodeURIComponent(getMensagemAcessoHorario(hId, data))}`);
   }
 
-  if (await store.frequenciaJaLancada(tId, data, hId)) {
-    return res.redirect(`/frequencia?turma_id=${tId}&data=${data}&horario=${hId}&erro=${encodeURIComponent(`A frequência dessa turma já foi lançada para o ${hId}º horário.`)}`);
+  const turma = await store.getTurma(tId);
+  const lancamentoForaHorarioLiberado = req.session.usuario.perfil === 'professor' && typeof store.getLancamentoForaHorarioLiberado === 'function'
+    ? await store.getLancamentoForaHorarioLiberado(tId, data, hId, req.session.usuario.id)
+    : null;
+  if (req.session.usuario.perfil === 'professor' && turma && !professorPodeLancarAteHorario(turma.turno, hId, data) && !lancamentoForaHorarioLiberado) {
+    return res.redirect(`/frequencia?turma_id=${tId}&data=${data}&horario=${hId}&erro=${encodeURIComponent(getMensagemLimiteLancamentoProfessor(turma.turno, hId))}`);
   }
 
   let parsed = [];
@@ -1097,10 +1344,225 @@ app.post('/frequencia', requireAuth, requirePerfil('admin', 'professor'), async 
   }
 
   try {
+    const jaLancada = await store.frequenciaJaLancada(tId, data, hId);
+    if (jaLancada) {
+      let solicitacaoEdicao = null;
+      if (req.session.usuario.perfil !== 'admin') {
+        solicitacaoEdicao = typeof store.getEdicaoLiberadaFrequencia === 'function'
+          ? await store.getEdicaoLiberadaFrequencia(tId, data, hId, req.session.usuario.id)
+          : null;
+        if (!solicitacaoEdicao) {
+          return res.redirect(`/frequencia?turma_id=${tId}&data=${data}&horario=${hId}&erro=${encodeURIComponent(`A frequência dessa turma já foi lançada para o ${hId}º horário. Solicite liberação ao administrador para alterar.`)}`);
+        }
+      }
+
+      const justificativaAlteracao = String(req.body.justificativa_alteracao || '').trim();
+      if (!justificativaAlteracao) {
+        return res.redirect(`/frequencia?turma_id=${tId}&data=${data}&horario=${hId}&editar=1&erro=${encodeURIComponent('Informe a justificativa obrigatória para alterar a frequência já lançada.')}`);
+      }
+
+      await store.atualizarFrequencia(
+        tId,
+        data,
+        parsed,
+        req.session.usuario.id,
+        hId,
+        justificativaAlteracao,
+        solicitacaoEdicao?.id || null
+      );
+      return res.redirect(`/frequencia?turma_id=${tId}&data=${data}&horario=${hId}&sucesso=${encodeURIComponent('Frequência atualizada com sucesso.')}`);
+    }
+
     await store.salvarFrequencia(tId, data, parsed, req.session.usuario.id, hId);
+    if (lancamentoForaHorarioLiberado?.id && typeof store.marcarSolicitacaoLancamentoForaHorarioAtendida === 'function') {
+      await store.marcarSolicitacaoLancamentoForaHorarioAtendida(lancamentoForaHorarioLiberado.id);
+    }
     res.redirect(`/frequencia?turma_id=${tId}&data=${data}&horario=${hId}&sucesso=Frequência salva.`);
   } catch (err) {
     res.redirect(`/frequencia?turma_id=${tId}&data=${data}&horario=${hId}&erro=${encodeURIComponent(err.message || 'Não foi possível salvar a frequência.')}`);
+  }
+});
+
+app.post('/frequencia/solicitar-lancamento-fora-horario', requireAuth, async (req, res) => {
+  try {
+    if (!(await usuarioPodeAcessarFrequencia(req.session.usuario))) {
+      throw new Error('Você não tem permissão para solicitar lançamento fora do horário.');
+    }
+    if (req.session.usuario.perfil === 'admin') {
+      throw new Error('Administrador não precisa solicitar liberação de lançamento fora do horário.');
+    }
+
+    const tId = Number(req.body.turma_id);
+    const data = String(req.body.data || '').trim();
+    const hId = normalizeHorario(req.body.horario);
+    const motivo = String(req.body.motivo_solicitacao_lancamento || '').trim();
+
+    if (!(await usuarioTemAcessoTurmaFrequencia(req.session.usuario, tId, hId, data))) {
+      throw new Error(getMensagemAcessoHorario(hId, data));
+    }
+    if (await store.frequenciaJaLancada(tId, data, hId)) {
+      throw new Error('Esta frequência já foi lançada. Use a solicitação de alteração, se necessário.');
+    }
+
+    const turma = await store.getTurma(tId);
+    if (!turma || professorPodeLancarAteHorario(turma.turno, hId, data)) {
+      throw new Error('A liberação só é necessária quando o horário de lançamento já foi encerrado.');
+    }
+
+    const solicitacao = await store.solicitarLancamentoForaHorario(tId, data, hId, req.session.usuario.id, motivo);
+
+    if (typeof store.getUsuariosDestinatarios === 'function' && typeof store.criarMensagemInterna === 'function') {
+      const admins = (await store.getUsuariosDestinatarios()).filter((u) => u.perfil === 'admin' && u.id !== req.session.usuario.id);
+      if (admins.length > 0) {
+        await store.criarMensagemInterna({
+          remetente_id: req.session.usuario.id,
+          titulo: `Solicitação de lançamento fora do horário - ${solicitacao.turma_nome}`,
+          corpo: [
+            `${req.session.usuario.nome} solicitou liberação para lançar frequência fora do horário permitido.`,
+            '',
+            `Turma: ${solicitacao.turma_nome}`,
+            `Data: ${data}`,
+            `Horário: ${hId}º`,
+            `Motivo: ${motivo}`,
+          ].join('\n'),
+          tipo_destino: 'usuarios',
+          perfil_destino: '',
+          usuario_ids: admins.map((u) => u.id),
+        });
+      }
+    }
+
+    res.redirect(`/frequencia?turma_id=${tId}&data=${data}&horario=${hId}&sucesso=${encodeURIComponent('Solicitação de lançamento fora do horário enviada ao administrador.')}`);
+  } catch (err) {
+    const tId = Number(req.body.turma_id) || '';
+    const data = String(req.body.data || '').trim();
+    const hId = normalizeHorario(req.body.horario);
+    res.redirect(`/frequencia?turma_id=${tId}&data=${data}&horario=${hId}&erro=${encodeURIComponent(err.message || 'Não foi possível solicitar a liberação do lançamento fora do horário.')}`);
+  }
+});
+
+app.post('/frequencia/liberar-lancamento-fora-horario', requireAuth, requirePerfil('admin'), async (req, res) => {
+  try {
+    if (typeof store.liberarLancamentoForaHorario !== 'function') {
+      throw new Error('Este recurso não está disponível neste modo do sistema.');
+    }
+    const solicitacaoId = Number(req.body.solicitacao_id);
+    const solicitacao = await store.liberarLancamentoForaHorario(solicitacaoId, req.session.usuario.id);
+
+    if (typeof store.criarMensagemInterna === 'function') {
+      await store.criarMensagemInterna({
+        remetente_id: req.session.usuario.id,
+        titulo: `Liberação de lançamento fora do horário - ${solicitacao.turma_nome}`,
+        corpo: [
+          'Sua solicitação para lançar frequência fora do horário foi liberada.',
+          '',
+          `Turma: ${solicitacao.turma_nome}`,
+          `Data: ${solicitacao.data}`,
+          `Horário: ${solicitacao.horario}º`,
+          '',
+          'Acesse a tela de frequência para realizar o lançamento.',
+        ].join('\n'),
+        tipo_destino: 'usuarios',
+        perfil_destino: '',
+        usuario_ids: [solicitacao.solicitante_id],
+      });
+    }
+
+    res.redirect(`/frequencia?turma_id=${solicitacao.turma_id}&data=${solicitacao.data}&horario=${solicitacao.horario}&sucesso=${encodeURIComponent('Lançamento fora do horário liberado para o solicitante.')}`);
+  } catch (err) {
+    const tId = Number(req.body.turma_id) || '';
+    const data = String(req.body.data || '').trim();
+    const hId = normalizeHorario(req.body.horario);
+    res.redirect(`/frequencia?turma_id=${tId}&data=${data}&horario=${hId}&erro=${encodeURIComponent(err.message || 'Não foi possível liberar o lançamento fora do horário.')}`);
+  }
+});
+
+app.post('/frequencia/solicitar-edicao', requireAuth, async (req, res) => {
+  try {
+    if (!(await usuarioPodeAcessarFrequencia(req.session.usuario))) {
+      throw new Error('Você não tem permissão para solicitar alteração de frequência.');
+    }
+    if (req.session.usuario.perfil === 'admin') {
+      throw new Error('Administrador pode editar diretamente, sem solicitar liberação.');
+    }
+
+    const tId = Number(req.body.turma_id);
+    const data = String(req.body.data || '').trim();
+    const hId = normalizeHorario(req.body.horario);
+    const motivo = String(req.body.motivo_solicitacao || '').trim();
+
+    if (!(await usuarioTemAcessoTurmaFrequencia(req.session.usuario, tId, hId, data))) {
+      throw new Error(getMensagemAcessoHorario(hId, data));
+    }
+    if (!(await store.frequenciaJaLancada(tId, data, hId))) {
+      throw new Error('Ainda não existe frequência lançada para solicitar alteração.');
+    }
+
+    const solicitacao = await store.solicitarEdicaoFrequencia(tId, data, hId, req.session.usuario.id, motivo);
+
+    if (typeof store.getUsuariosDestinatarios === 'function' && typeof store.criarMensagemInterna === 'function') {
+      const admins = (await store.getUsuariosDestinatarios()).filter((u) => u.perfil === 'admin' && u.id !== req.session.usuario.id);
+      if (admins.length > 0) {
+        await store.criarMensagemInterna({
+          remetente_id: req.session.usuario.id,
+          titulo: `Solicitação de alteração de frequência - ${solicitacao.turma_nome}`,
+          corpo: [
+            `${req.session.usuario.nome} solicitou liberação para alterar a frequência.`,
+            '',
+            `Turma: ${solicitacao.turma_nome}`,
+            `Data: ${data}`,
+            `Horário: ${hId}º`,
+            `Motivo: ${motivo}`,
+          ].join('\n'),
+          tipo_destino: 'usuarios',
+          perfil_destino: '',
+          usuario_ids: admins.map((u) => u.id),
+        });
+      }
+    }
+
+    res.redirect(`/frequencia?turma_id=${tId}&data=${data}&horario=${hId}&sucesso=${encodeURIComponent('Solicitação enviada ao administrador com sucesso.')}`);
+  } catch (err) {
+    const tId = Number(req.body.turma_id) || '';
+    const data = String(req.body.data || '').trim();
+    const hId = normalizeHorario(req.body.horario);
+    res.redirect(`/frequencia?turma_id=${tId}&data=${data}&horario=${hId}&erro=${encodeURIComponent(err.message || 'Não foi possível enviar a solicitação de alteração.')}`);
+  }
+});
+
+app.post('/frequencia/liberar-edicao', requireAuth, requirePerfil('admin'), async (req, res) => {
+  try {
+    if (typeof store.liberarEdicaoFrequencia !== 'function') {
+      throw new Error('Este recurso não está disponível neste modo do sistema.');
+    }
+    const solicitacaoId = Number(req.body.solicitacao_id);
+    const solicitacao = await store.liberarEdicaoFrequencia(solicitacaoId, req.session.usuario.id);
+
+    if (typeof store.criarMensagemInterna === 'function') {
+      await store.criarMensagemInterna({
+        remetente_id: req.session.usuario.id,
+        titulo: `Liberação para alterar frequência - ${solicitacao.turma_nome}`,
+        corpo: [
+          `Sua solicitação para alterar a frequência foi liberada.`,
+          '',
+          `Turma: ${solicitacao.turma_nome}`,
+          `Data: ${solicitacao.data}`,
+          `Horário: ${solicitacao.horario}º`,
+          '',
+          'Acesse a tela de frequência e informe a justificativa obrigatória ao salvar a alteração.',
+        ].join('\n'),
+        tipo_destino: 'usuarios',
+        perfil_destino: '',
+        usuario_ids: [solicitacao.solicitante_id],
+      });
+    }
+
+    res.redirect(`/frequencia?turma_id=${solicitacao.turma_id}&data=${solicitacao.data}&horario=${solicitacao.horario}&sucesso=${encodeURIComponent('Alteração liberada para o solicitante.')}`);
+  } catch (err) {
+    const tId = Number(req.body.turma_id) || '';
+    const data = String(req.body.data || '').trim();
+    const hId = normalizeHorario(req.body.horario);
+    res.redirect(`/frequencia?turma_id=${tId}&data=${data}&horario=${hId}&erro=${encodeURIComponent(err.message || 'Não foi possível liberar a alteração de frequência.')}`);
   }
 });
 
@@ -1300,15 +1762,20 @@ const ExcelJS = require('exceljs');
 // --- Relatórios ---
 app.get('/relatorios', requireAuth, requirePerfil('admin', 'coordenacao', 'direcao'), async (req, res) => {
   const data = req.query.data || getTodayYmdLocal();
-  const [lancamentos, pendencias] = await Promise.all([
+  const horarioFiltro = req.query.horario === '6' ? 6 : req.query.horario === '1' ? 1 : '';
+  const [lancamentos, pendenciasBase] = await Promise.all([
     store.relatorioLancamentosDia(data),
     typeof store.relatorioPendenciasLancamentoDia === 'function'
       ? store.relatorioPendenciasLancamentoDia(data)
       : [],
   ]);
+  const pendencias = horarioFiltro
+    ? pendenciasBase.filter((item) => Number(item.horario) === Number(horarioFiltro))
+    : pendenciasBase;
   res.render('relatorios/index', {
     titulo: 'Relatórios de Lançamentos',
     data,
+    horarioFiltro,
     lancamentos,
     pendencias,
     sucesso: req.query.sucesso || null,
@@ -1327,12 +1794,16 @@ app.post('/frequencias/limpar', requireAuth, requirePerfil('admin'), async (req,
 
 app.get('/relatorios/exportar/excel', requireAuth, requirePerfil('admin', 'coordenacao', 'direcao'), async (req, res) => {
   const data = req.query.data || getTodayYmdLocal();
-  const [lancamentos, pendencias] = await Promise.all([
+  const horarioFiltro = req.query.horario === '6' ? 6 : req.query.horario === '1' ? 1 : '';
+  const [lancamentos, pendenciasBase] = await Promise.all([
     store.relatorioLancamentosDia(data),
     typeof store.relatorioPendenciasLancamentoDia === 'function'
       ? store.relatorioPendenciasLancamentoDia(data)
       : [],
   ]);
+  const pendencias = horarioFiltro
+    ? pendenciasBase.filter((item) => Number(item.horario) === Number(horarioFiltro))
+    : pendenciasBase;
   
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('Lançamentos');
@@ -1351,7 +1822,7 @@ app.get('/relatorios/exportar/excel', requireAuth, requirePerfil('admin', 'coord
       turno: res.locals.formatarTurno(l.turno),
       horario: l.horario + 'º',
       usuario_nome: l.lancado_por,
-      lancado_em: res.locals.formatarData(l.data_lancamento) + ' ' + new Date(l.data_lancamento).toLocaleTimeString('pt-BR')
+      lancado_em: res.locals.formatarDataHora(l.data_lancamento)
     });
   });
 

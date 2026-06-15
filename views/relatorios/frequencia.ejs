@@ -87,6 +87,48 @@
             </tbody>
           </table>
         </div>
+
+        <div class="card" style="margin-top: 1.5rem;">
+          <div class="card-header">
+            <h3>Aulas Lançadas no Mês</h3>
+          </div>
+          <div class="card-body">
+            <% if (!aulasDetalhadas || aulasDetalhadas.length === 0) { %>
+              <p style="text-align: center; color: var(--text-muted); margin: 0;">Nenhuma aula lançada encontrada para esta turma no período.</p>
+            <% } else { %>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Data</th>
+                      <th>Horário</th>
+                      <th style="text-align: center;">Presenças</th>
+                      <th style="text-align: center;">Faltas</th>
+                      <th style="text-align: center;">Justif.</th>
+                      <th style="text-align: center;">Total</th>
+                      <th>Lançado por</th>
+                      <th>Registrado em</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% aulasDetalhadas.forEach(function(aula) { %>
+                      <tr>
+                        <td data-label="Data"><strong><%= formatarData(aula.data) %></strong></td>
+                        <td data-label="Horário"><span class="badge badge-info"><%= aula.horario %>º Horário</span></td>
+                        <td style="text-align: center;" data-label="Presenças"><%= aula.presencas %></td>
+                        <td style="text-align: center; color: var(--danger); font-weight: bold;" data-label="Faltas"><%= aula.faltas %></td>
+                        <td style="text-align: center;" data-label="Justif."><%= aula.justificadas %></td>
+                        <td style="text-align: center;" data-label="Total"><%= aula.total_registros %></td>
+                        <td data-label="Lançado por"><%= aula.lancado_por || '—' %></td>
+                        <td data-label="Registrado em"><%= formatarDataHora(aula.data_lancamento) %></td>
+                      </tr>
+                    <% }) %>
+                  </tbody>
+                </table>
+              </div>
+            <% } %>
+          </div>
+        </div>
       <% } %>
     <% } %>
   </div>

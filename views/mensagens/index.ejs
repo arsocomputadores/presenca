@@ -27,7 +27,7 @@
                 <h4><%= m.titulo %></h4>
                 <div class="mensagem-meta">
                   <span>De: <strong><%= m.remetente_nome %></strong></span>
-                  <span>Enviada em <%= new Date(m.criado_em).toLocaleString('pt-BR') %></span>
+                  <span>Enviada em <%= formatarDataHora(m.criado_em) %></span>
                 </div>
               </div>
               <div class="inline-actions" style="align-items:center;">
@@ -43,7 +43,7 @@
             </div>
             <div class="mensagem-corpo"><%= m.corpo %></div>
             <% if (m.lida_em) { %>
-              <div class="mensagem-lida-em">Lida em <%= new Date(m.lida_em).toLocaleString('pt-BR') %></div>
+              <div class="mensagem-lida-em">Lida em <%= formatarDataHora(m.lida_em) %></div>
             <% } %>
           </div>
         <% }) %>

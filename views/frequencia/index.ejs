@@ -61,12 +61,163 @@
           <strong><%= diaSemanaAtual ? (turmaSelecionada.escala_semana?.[diaSemanaAtual.value]?.[6]?.professor_nome || turmaSelecionada.professor_sexto_horario_nome || 'sem marcação específica') : (turmaSelecionada.professor_sexto_horario_nome || 'sem marcação específica') %></strong>.
         </div>
       <% } %>
+
+      <% if (usuario.perfil === 'professor' && turmaSelecionada) { %>
+        <div class="alert alert-warning" style="margin-top:0.75rem">
+          <% if (String(turmaSelecionada.turno).toLowerCase() === 'manha' || String(turmaSelecionada.turno).toLowerCase() === 'matutino') { %>
+            Limites do matutino: <strong>1º horário até 9h30</strong> e <strong>6º horário até 12h30</strong>.
+          <% } else if (String(turmaSelecionada.turno).toLowerCase() === 'tarde' || String(turmaSelecionada.turno).toLowerCase() === 'vespertino') { %>
+            Limites do vespertino: <strong>1º horário até 14h30</strong> e <strong>6º horário até 18h10</strong>.
+          <% } %>
+        </div>
+      <% } %>
     </div>
 
-    <% if (jaLancada) { %>
+    <% if (horarioForaDoPrazo && !jaLancada && usuario.perfil === 'professor' && !podeLancarForaHorario) { %>
+      <div class="alert alert-warning">
+        O prazo para lançamento desta frequência já terminou. Solicite ao administrador a liberação para lançar fora do horário.
+      </div>
+
+      <% if (solicitacaoLancamentoAtual && solicitacaoLancamentoAtual.status === 'pendente') { %>
+        <div class="alert alert-info" style="margin-top:1rem">
+          Sua solicitação de lançamento fora do horário já foi enviada ao administrador e está pendente.
+        </div>
+      <% } else if (solicitacaoLancamentoAtual && solicitacaoLancamentoAtual.status === 'liberada') { %>
+        <div class="alert alert-success" style="margin-top:1rem">
+          Sua solicitação foi liberada. Atualize a página se o formulário não aparecer automaticamente.
+        </div>
+      <% } else { %>
+        <div class="card" style="margin-top:1rem">
+          <div class="card-header">
+            <h4>Solicitar Lançamento Fora do Horário</h4>
+          </div>
+          <div class="card-body">
+            <form method="post" action="/frequencia/solicitar-lancamento-fora-horario">
+              <input type="hidden" name="turma_id" value="<%= turmaId %>">
+              <input type="hidden" name="data" value="<%= data %>">
+              <input type="hidden" name="horario" value="<%= horario %>">
+              <div class="form-group" style="margin-bottom:0.75rem">
+                <label for="motivo_solicitacao_lancamento">Motivo da solicitação</label>
+                <textarea name="motivo_solicitacao_lancamento" id="motivo_solicitacao_lancamento" rows="3" placeholder="Explique por que o lançamento será feito após o horário limite." required></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary">Solicitar ao administrador</button>
+            </form>
+          </div>
+        </div>
+      <% } %>
+    <% } else if (jaLancada && !modoEdicao) { %>
       <div class="alert alert-info">
         A frequência desta turma já foi lançada para o <strong><%= horario %>º horário</strong> em <strong><%= formatarData(data) %></strong>.
-        Escolha outro horário ou outra data para continuar.
+        <% if (usuario.perfil === 'admin') { %>
+          Você pode liberar a alteração para o solicitante ou editar diretamente.
+        <% } else { %>
+          Solicite ao administrador a liberação para alterar.
+        <% } %>
+      </div>
+
+      <% if (usuario.perfil === 'admin') { %>
+        <div class="card" style="margin-top:1rem">
+          <div class="card-header">
+            <h4>Alteração da Frequência Lançada</h4>
+          </div>
+          <div class="card-body">
+            <div class="inline-actions">
+              <a href="/frequencia?turma_id=<%= turmaId %>&data=<%= data %>&horario=<%= horario %>&editar=1" class="btn btn-primary">Editar frequência lançada</a>
+            </div>
+
+            <% if (solicitacoesPendentesAdmin && solicitacoesPendentesAdmin.length > 0) { %>
+              <div style="margin-top:1rem">
+                <% solicitacoesPendentesAdmin.forEach(function(item) { %>
+                  <div class="card" style="margin-bottom:1rem">
+                    <div class="card-body">
+                      <div style="font-weight:700; margin-bottom:.35rem">
+                        <%= item.solicitante_nome %> -
+                        <span class="badge <%= item.status === 'liberada' ? 'badge-success' : 'badge-warning' %>">
+                          <%= item.status === 'liberada' ? 'Liberada' : 'Pendente' %>
+                        </span>
+                      </div>
+                      <div style="margin-bottom:.5rem"><strong>Motivo:</strong> <%= item.motivo %></div>
+                      <% if (item.status === 'pendente') { %>
+                        <form method="post" action="/frequencia/liberar-edicao" class="inline-actions" style="margin:0">
+                          <input type="hidden" name="solicitacao_id" value="<%= item.id %>">
+                          <input type="hidden" name="turma_id" value="<%= turmaId %>">
+                          <input type="hidden" name="data" value="<%= data %>">
+                          <input type="hidden" name="horario" value="<%= horario %>">
+                          <button type="submit" class="btn btn-secondary">Liberar alteração</button>
+                        </form>
+                      <% } else { %>
+                        <div class="text-muted">Liberação feita por <%= item.liberado_por_nome || 'administrador' %>.</div>
+                      <% } %>
+                    </div>
+                  </div>
+                <% }) %>
+              </div>
+            <% } else { %>
+              <p class="text-muted" style="margin-top:1rem; margin-bottom:0">Nenhuma solicitação pendente para esta frequência.</p>
+            <% } %>
+          </div>
+        </div>
+      <% } else if (solicitacaoEdicaoAtual && solicitacaoEdicaoAtual.status === 'pendente') { %>
+        <div class="alert alert-warning" style="margin-top:1rem">
+          Sua solicitação de alteração já foi enviada ao administrador e ainda está pendente.
+        </div>
+      <% } else if (solicitacaoEdicaoAtual && solicitacaoEdicaoAtual.status === 'liberada') { %>
+        <div class="alert alert-success" style="margin-top:1rem">
+          Sua solicitação foi liberada. A edição da frequência já está disponível abaixo.
+        </div>
+      <% } else { %>
+        <div class="card" style="margin-top:1rem">
+          <div class="card-header">
+            <h4>Solicitar Liberação ao Administrador</h4>
+          </div>
+          <div class="card-body">
+            <form method="post" action="/frequencia/solicitar-edicao">
+              <input type="hidden" name="turma_id" value="<%= turmaId %>">
+              <input type="hidden" name="data" value="<%= data %>">
+              <input type="hidden" name="horario" value="<%= horario %>">
+              <div class="form-group" style="margin-bottom:0.75rem">
+                <label for="motivo_solicitacao">Motivo da solicitação</label>
+                <textarea name="motivo_solicitacao" id="motivo_solicitacao" rows="3" placeholder="Explique ao administrador por que a frequência precisa ser alterada." required></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary">Solicitar ao administrador</button>
+            </form>
+          </div>
+        </div>
+      <% } %>
+    <% } else if (horarioForaDoPrazo && !jaLancada && usuario.perfil === 'admin' && solicitacoesLancamentoPendentesAdmin && solicitacoesLancamentoPendentesAdmin.length > 0) { %>
+      <div class="alert alert-info">
+        Há solicitação(ões) pendente(s) para lançamento fora do horário nesta frequência.
+      </div>
+      <div class="card" style="margin-top:1rem">
+        <div class="card-header">
+          <h4>Liberações de Lançamento Fora do Horário</h4>
+        </div>
+        <div class="card-body">
+          <% solicitacoesLancamentoPendentesAdmin.forEach(function(item) { %>
+            <div class="card" style="margin-bottom:1rem">
+              <div class="card-body">
+                <div style="font-weight:700; margin-bottom:.35rem">
+                  <%= item.solicitante_nome %> -
+                  <span class="badge <%= item.status === 'liberada' ? 'badge-success' : 'badge-warning' %>">
+                    <%= item.status === 'liberada' ? 'Liberada' : 'Pendente' %>
+                  </span>
+                </div>
+                <div style="margin-bottom:.5rem"><strong>Motivo:</strong> <%= item.motivo %></div>
+                <% if (item.status === 'pendente') { %>
+                  <form method="post" action="/frequencia/liberar-lancamento-fora-horario" class="inline-actions" style="margin:0">
+                    <input type="hidden" name="solicitacao_id" value="<%= item.id %>">
+                    <input type="hidden" name="turma_id" value="<%= turmaId %>">
+                    <input type="hidden" name="data" value="<%= data %>">
+                    <input type="hidden" name="horario" value="<%= horario %>">
+                    <button type="submit" class="btn btn-secondary">Liberar lançamento fora do horário</button>
+                  </form>
+                <% } else { %>
+                  <div class="text-muted">Liberação feita por <%= item.liberado_por_nome || 'administrador' %>.</div>
+                <% } %>
+              </div>
+            </div>
+          <% }) %>
+        </div>
       </div>
     <% } else if (!turmaSelecionada) { %>
       <p style="color:var(--muted)">Selecione uma turma para lançar a frequência.</p>
@@ -77,6 +228,26 @@
       <input type="hidden" name="turma_id" value="<%= turmaId %>">
       <input type="hidden" name="data" value="<%= data %>">
       <input type="hidden" name="horario" value="<%= horario %>">
+      <% if (solicitacaoEdicaoAtual && solicitacaoEdicaoAtual.id) { %>
+        <input type="hidden" name="solicitacao_edicao_id" value="<%= solicitacaoEdicaoAtual.id %>">
+      <% } %>
+      <% if (solicitacaoLancamentoAtual && solicitacaoLancamentoAtual.id) { %>
+        <input type="hidden" name="solicitacao_lancamento_id" value="<%= solicitacaoLancamentoAtual.id %>">
+      <% } %>
+      
+      <% if (modoEdicao) { %>
+        <div class="alert alert-warning" style="margin-bottom:1rem">
+          Você está alterando uma frequência já lançada. Informe a justificativa obrigatória antes de salvar.
+        </div>
+        <div class="form-group" style="margin-bottom:1rem">
+          <label for="justificativa_alteracao">Justificativa da alteração</label>
+          <textarea name="justificativa_alteracao" id="justificativa_alteracao" rows="3" placeholder="Descreva o motivo da alteração desta frequência." required></textarea>
+        </div>
+      <% } else if (horarioForaDoPrazo && podeLancarForaHorario) { %>
+        <div class="alert alert-success" style="margin-bottom:1rem">
+          O administrador liberou este lançamento fora do horário. Faça o lançamento normalmente abaixo.
+        </div>
+      <% } %>
       
       <div class="table-wrap freq-table-wrap">
           <table class="freq-table">
@@ -122,7 +293,7 @@
         <div class="form-actions-bar mobile-action-bar freq-actions-bar">
           <a href="/turmas" class="btn btn-secondary">Voltar para turmas</a>
           <button type="button" class="btn btn-secondary" onclick="marcarTodos('P')">Todos P</button>
-          <button type="submit" class="btn btn-primary">Salvar Frequência</button>
+          <button type="submit" class="btn btn-primary"><%= modoEdicao ? 'Salvar Alteração' : 'Salvar Frequência' %></button>
         </div>
       </form>
     <% } %>

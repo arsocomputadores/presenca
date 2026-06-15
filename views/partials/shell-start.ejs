@@ -16,7 +16,7 @@
       </div>
       <nav>
         <a href="/" class="<%= titulo === 'Painel' ? 'active' : '' %>">Painel</a>
-        <% if (usuario && (usuario.perfil === 'admin' || usuario.perfil === 'professor')) { %>
+        <% if (usuario && (usuario.perfil === 'admin' || usuario.perfil === 'professor' || (usuario.perfil === 'direcao' && direcaoPodeLancarFrequencia))) { %>
           <a href="/frequencia" class="<%= titulo === 'Lançar frequência' ? 'active' : '' %>">Frequência</a>
         <% } %>
 

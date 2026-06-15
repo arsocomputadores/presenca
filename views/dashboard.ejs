@@ -56,12 +56,93 @@
   </div>
 <% } %>
 
+<% if (usuario.perfil === 'admin' && configuracaoDirecaoLancamento) { %>
+  <div class="card" style="margin-top:1.5rem">
+    <div class="card-header">
+      <h3>Lançamento Pela Direção</h3>
+    </div>
+    <div class="card-body" style="display:flex; gap:1rem; align-items:center; justify-content:space-between; flex-wrap:wrap">
+      <div>
+        <div style="font-weight:700; margin-bottom:.35rem">
+          Status:
+          <% if (configuracaoDirecaoLancamento.ativo) { %>
+            <span class="badge badge-success">Liberado</span>
+          <% } else { %>
+            <span class="badge badge-warning">Bloqueado</span>
+          <% } %>
+        </div>
+        <div class="text-muted">
+          Quando estiver liberado, membros da direção podem acessar a tela de lançamento de frequência.
+        </div>
+        <div class="text-muted" style="margin-top:.35rem">
+          É neste card do Painel que o administrador autoriza ou bloqueia a direção no botão
+          <strong><%= configuracaoDirecaoLancamento.ativo ? 'Bloquear Direção' : 'Autorizar Direção' %></strong>.
+        </div>
+      </div>
+      <form method="post" action="/admin/configuracoes/direcao-lancar-frequencia">
+        <input type="hidden" name="ativo" value="<%= configuracaoDirecaoLancamento.ativo ? '0' : '1' %>" />
+        <button type="submit" class="btn <%= configuracaoDirecaoLancamento.ativo ? 'btn-secondary' : 'btn-primary' %>">
+          <%= configuracaoDirecaoLancamento.ativo ? 'Bloquear Direção' : 'Autorizar Direção' %>
+        </button>
+      </form>
+    </div>
+  </div>
+<% } %>
+
+<% if (usuario.perfil === 'admin' || usuario.perfil === 'direcao') { %>
+  <div class="card" style="margin-top:1.5rem">
+    <div class="card-header">
+      <h3>Pendências do Dia</h3>
+      <a href="/relatorios?data=<%= dataReferenciaPainel %>" class="btn btn-sm btn-outline">Abrir relatório</a>
+    </div>
+    <div class="card-body">
+      <% if (!pendenciasPainel || pendenciasPainel.length === 0) { %>
+        <div class="alert alert-success" style="margin:0">
+          Nenhuma pendência de lançamento identificada em <strong><%= formatarData(dataReferenciaPainel) %></strong>.
+        </div>
+      <% } else { %>
+        <div style="font-weight:700; margin-bottom:.75rem">
+          <span class="badge badge-danger"><%= pendenciasPainel.length %></span>
+          pendência(s) de lançamento em <strong><%= formatarData(dataReferenciaPainel) %></strong>.
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Turma</th>
+                <th>Dia</th>
+                <th>Horário</th>
+                <th>Professor</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% pendenciasPainel.slice(0, 10).forEach(function(item) { %>
+                <tr>
+                  <td data-label="Turma"><strong><%= item.turma_nome %></strong></td>
+                  <td data-label="Dia"><%= item.dia_semana_label %></td>
+                  <td data-label="Horário"><%= item.horario %>º horário</td>
+                  <td data-label="Professor"><%= item.professor_nome || 'Sem professor definido' %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+        <% if (pendenciasPainel.length > 10) { %>
+          <div class="text-muted" style="margin-top:.75rem">
+            Exibindo as 10 primeiras pendências. Abra o relatório para ver a lista completa.
+          </div>
+        <% } %>
+      <% } %>
+    </div>
+  </div>
+<% } %>
+
 <div class="card">
   <div class="card-header">
     <h3>Acesso rápido</h3>
   </div>
   <div class="card-body quick-actions">
-    <% if (usuario.perfil === 'admin' || usuario.perfil === 'professor') { %>
+    <% if (usuario.perfil === 'admin' || usuario.perfil === 'professor' || (usuario.perfil === 'direcao' && direcaoPodeLancarFrequencia)) { %>
       <a href="/frequencia" class="btn btn-primary">Lançar frequência</a>
     <% } %>
     <% if (usuario.perfil === 'admin') { %>
@@ -103,7 +184,7 @@
   <div class="card-body">
     <div class="turmas-grid">
       <% turmas.slice(0, 6).forEach(function(t) { %>
-        <% if (usuario.perfil === 'admin' || usuario.perfil === 'professor') { %>
+        <% if (usuario.perfil === 'admin' || usuario.perfil === 'professor' || (usuario.perfil === 'direcao' && direcaoPodeLancarFrequencia)) { %>
           <a href="/frequencia?turma_id=<%= t.id %>" class="turma-card" style="text-decoration:none;color:inherit">
             <h4><%= t.nome %></h4>
             <div class="meta"><%= t.serie %> · <%= formatarTurno(t.turno) %></div>

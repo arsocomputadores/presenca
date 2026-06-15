@@ -450,10 +450,31 @@ body {
 
 .report-filter-form {
   margin-bottom: 0;
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  flex: 1;
 }
 
 .report-filter-form .form-group {
   margin-bottom: 0;
+}
+
+.report-filter-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  gap: 0.85rem 1rem;
+  flex: 1;
+}
+
+.report-filter-submit {
+  min-width: 140px;
+}
+
+.report-filter-submit .btn {
+  width: 100%;
+  min-height: 46px;
 }
 
 .filter-bar {
@@ -782,6 +803,19 @@ textarea::placeholder {
 .freq-btn.active-F { background: var(--danger); color: white; border-color: var(--danger); }
 .freq-btn.active-J { background: var(--warning); color: white; border-color: var(--warning); }
 
+.student-info,
+.student-name {
+  min-width: 0;
+}
+
+.student-name {
+  display: block;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
 .badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; display: inline-flex; }
 .badge-success { background: #d1fae5; color: #065f46; }
 .badge-warning { background: #ffedd5; color: #9a3412; }
@@ -998,7 +1032,34 @@ textarea::placeholder {
   }
 
   .student-info { border-bottom: 1px solid var(--border) !important; margin-bottom: 1rem !important; padding-bottom: 0.5rem !important; }
-  .student-name { font-size: 1.1rem !important; color: var(--primary-dark) !important; }
+  .student-name {
+    font-size: 1.1rem !important;
+    color: var(--primary-dark) !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+    line-height: 1.4 !important;
+  }
+
+  .freq-table td {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    gap: 0.35rem !important;
+    width: 100% !important;
+    text-align: left !important;
+  }
+
+  .freq-table td::before {
+    margin-bottom: 0.15rem !important;
+  }
+
+  .freq-table .student-info,
+  .freq-table .freq-controls,
+  .freq-table .obs-container {
+    overflow: visible !important;
+  }
   
   .freq-buttons-grid {
     display: grid !important;
@@ -1028,6 +1089,20 @@ textarea::placeholder {
 
   .filter-bar {
     grid-template-columns: 1fr !important;
+  }
+
+  .report-filter-form,
+  .report-filter-fields {
+    width: 100% !important;
+  }
+
+  .report-filter-fields {
+    grid-template-columns: 1fr !important;
+  }
+
+  .report-filter-submit {
+    width: 100% !important;
+    min-width: 0 !important;
   }
 
   .pagination-toolbar {

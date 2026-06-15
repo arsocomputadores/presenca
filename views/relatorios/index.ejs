@@ -14,18 +14,28 @@
       const totalLancados = (pendencias || []).filter((p) => p.status === 'lancado').length;
     %>
     <div class="report-toolbar">
-      <form method="get" action="/relatorios" class="form-grid report-filter-form" style="margin-bottom:0">
-        <div class="form-group" style="margin-bottom:0">
-          <label for="data">Data de referência</label>
-          <div class="mobile-inline-form">
+      <form method="get" action="/relatorios" class="report-filter-form">
+        <div class="report-filter-fields">
+          <div class="form-group">
+            <label for="data">Data de referência</label>
             <input type="date" name="data" id="data" value="<%= data %>" class="form-control">
-            <button type="submit" class="btn btn-primary">Filtrar</button>
           </div>
+          <div class="form-group">
+            <label for="horario">Pendências</label>
+            <select name="horario" id="horario" class="form-control">
+              <option value="" <%= !horarioFiltro ? 'selected' : '' %>>1º e 6º horários</option>
+              <option value="1" <%= Number(horarioFiltro) === 1 ? 'selected' : '' %>>Somente 1º horário</option>
+              <option value="6" <%= Number(horarioFiltro) === 6 ? 'selected' : '' %>>Somente 6º horário</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group report-filter-submit">
+          <button type="submit" class="btn btn-primary">Filtrar</button>
         </div>
       </form>
       
       <div class="report-toolbar-actions">
-      <a href="/relatorios/exportar/excel?data=<%= data %>" class="btn btn-secondary no-print">
+      <a href="/relatorios/exportar/excel?data=<%= data %><%= horarioFiltro ? '&horario=' + horarioFiltro : '' %>" class="btn btn-secondary no-print">
          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="vertical-align: middle; margin-right: 0.25rem;">
            <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"/>
            <path d="M4.5 12.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5z"/>
@@ -83,7 +93,7 @@
                 <td data-label="Turno"><%= formatarTurno(l.turno) %></td>
                 <td data-label="Horário"><span class="badge badge-info"><%= l.horario %>º Horário</span></td>
                 <td data-label="Lançado por"><%= l.lancado_por %></td>
-                <td data-label="Data/Hora do Registro"><%= new Date(l.data_lancamento).toLocaleString('pt-BR') %></td>
+                <td data-label="Data/Hora do Registro"><%= formatarDataHora(l.data_lancamento) %></td>
                 <td data-label="Total de Alunos"><%= l.total_registros %> alunos</td>
               </tr>
             <% }) %>
@@ -94,12 +104,17 @@
 
     <div class="card" style="margin-top:1.5rem">
       <div class="card-header">
-        <h3>Pendências do Dia</h3>
+        <h3>
+          Pendências do Dia
+          <% if (Number(horarioFiltro) === 1 || Number(horarioFiltro) === 6) { %>
+            — <%= horarioFiltro %>º horário
+          <% } %>
+        </h3>
       </div>
       <div class="card-body">
         <% if (!pendencias || pendencias.length === 0) { %>
           <div class="alert alert-info">
-            Não há pendências registradas para <%= formatarData(data) %>.
+            Não há pendências registradas para <%= formatarData(data) %><%= Number(horarioFiltro) === 1 || Number(horarioFiltro) === 6 ? ' no ' + horarioFiltro + 'º horário' : '' %>.
           </div>
         <% } else { %>
           <div class="table-wrap">

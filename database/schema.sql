@@ -37,7 +37,7 @@ CREATE TABLE usuarios (
     nome                VARCHAR(120) NOT NULL,
     cpf                 VARCHAR(11) NOT NULL,
     senha_hash          VARCHAR(255) NOT NULL COMMENT 'Hash bcrypt/argon2',
-    perfil              ENUM('admin', 'coordenacao', 'professor') NOT NULL DEFAULT 'professor',
+    perfil              ENUM('admin', 'coordenacao', 'direcao', 'professor') NOT NULL DEFAULT 'professor',
     ativo               TINYINT(1) NOT NULL DEFAULT 1,
     aviso_inicial_lido_em DATETIME NULL,
     criado_em           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -167,6 +167,24 @@ CREATE TABLE configuracoes_sistema (
 ) ENGINE=InnoDB COMMENT='Configurações gerais do sistema';
 
 -- -----------------------------------------------------------------------------
+-- Tabela: turma_ordem_manual_definitiva
+-- Permite fixar manualmente a ordem final de alunos em turmas definitivas
+-- -----------------------------------------------------------------------------
+CREATE TABLE turma_ordem_manual_definitiva (
+    turma_id            INT UNSIGNED NOT NULL,
+    aluno_id            INT UNSIGNED NOT NULL,
+    ordem               INT UNSIGNED NOT NULL,
+    criado_em           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (turma_id, aluno_id),
+    UNIQUE KEY uk_tomd_turma_ordem (turma_id, ordem),
+    CONSTRAINT fk_tomd_turma FOREIGN KEY (turma_id) REFERENCES turmas (id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_tomd_aluno FOREIGN KEY (aluno_id) REFERENCES alunos (id)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB COMMENT='Ordem manual dos alunos no final de turmas definitivas';
+
+-- -----------------------------------------------------------------------------
 -- Tabela: alunos
 -- codigo: número de no máximo 8 dígitos, exibido antes do nome
 -- -----------------------------------------------------------------------------
@@ -259,6 +277,84 @@ CREATE TABLE frequencias (
     CONSTRAINT fk_frequencias_usuario FOREIGN KEY (lancado_por) REFERENCES usuarios (id)
         ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB COMMENT='Registro diário de frequência';
+
+-- -----------------------------------------------------------------------------
+-- Tabela: frequencia_solicitacoes_edicao
+-- Solicitações de alteração de frequência já lançada
+-- -----------------------------------------------------------------------------
+CREATE TABLE frequencia_solicitacoes_edicao (
+    id                  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    turma_id            INT UNSIGNED NOT NULL,
+    data                DATE NOT NULL,
+    horario             TINYINT UNSIGNED NOT NULL,
+    solicitante_id      INT UNSIGNED NOT NULL,
+    motivo              VARCHAR(500) NOT NULL,
+    status              ENUM('pendente', 'liberada', 'atendida', 'negada') NOT NULL DEFAULT 'pendente',
+    liberado_por        INT UNSIGNED NULL,
+    criado_em           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    liberado_em         DATETIME NULL,
+    atendido_em         DATETIME NULL,
+
+    INDEX idx_fse_turma_data_horario (turma_id, data, horario, status),
+    INDEX idx_fse_solicitante (solicitante_id, status),
+    CONSTRAINT fk_fse_turma FOREIGN KEY (turma_id) REFERENCES turmas (id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_fse_solicitante FOREIGN KEY (solicitante_id) REFERENCES usuarios (id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_fse_liberado_por FOREIGN KEY (liberado_por) REFERENCES usuarios (id)
+        ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB COMMENT='Solicitações de liberação para editar frequência lançada';
+
+-- -----------------------------------------------------------------------------
+-- Tabela: frequencia_alteracoes
+-- Log com justificativa obrigatória de alterações em frequência
+-- -----------------------------------------------------------------------------
+CREATE TABLE frequencia_alteracoes (
+    id                  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    turma_id            INT UNSIGNED NOT NULL,
+    data                DATE NOT NULL,
+    horario             TINYINT UNSIGNED NOT NULL,
+    alterado_por        INT UNSIGNED NOT NULL,
+    justificativa       VARCHAR(500) NOT NULL,
+    solicitacao_id      INT UNSIGNED NULL,
+    criado_em           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    INDEX idx_fa_turma_data_horario (turma_id, data, horario),
+    INDEX idx_fa_alterado_por (alterado_por),
+    CONSTRAINT fk_fa_turma FOREIGN KEY (turma_id) REFERENCES turmas (id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_fa_alterado_por FOREIGN KEY (alterado_por) REFERENCES usuarios (id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_fa_solicitacao FOREIGN KEY (solicitacao_id) REFERENCES frequencia_solicitacoes_edicao (id)
+        ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB COMMENT='Histórico de alterações de frequência com justificativa';
+
+-- -----------------------------------------------------------------------------
+-- Tabela: frequencia_solicitacoes_lancamento
+-- Solicitações de lançamento fora do horário permitido
+-- -----------------------------------------------------------------------------
+CREATE TABLE frequencia_solicitacoes_lancamento (
+    id                  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    turma_id            INT UNSIGNED NOT NULL,
+    data                DATE NOT NULL,
+    horario             TINYINT UNSIGNED NOT NULL,
+    solicitante_id      INT UNSIGNED NOT NULL,
+    motivo              VARCHAR(500) NOT NULL,
+    status              ENUM('pendente', 'liberada', 'atendida', 'negada') NOT NULL DEFAULT 'pendente',
+    liberado_por        INT UNSIGNED NULL,
+    criado_em           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    liberado_em         DATETIME NULL,
+    atendido_em         DATETIME NULL,
+
+    INDEX idx_fsl_turma_data_horario (turma_id, data, horario, status),
+    INDEX idx_fsl_solicitante (solicitante_id, status),
+    CONSTRAINT fk_fsl_turma FOREIGN KEY (turma_id) REFERENCES turmas (id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_fsl_solicitante FOREIGN KEY (solicitante_id) REFERENCES usuarios (id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_fsl_liberado_por FOREIGN KEY (liberado_por) REFERENCES usuarios (id)
+        ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB COMMENT='Solicitações de lançamento fora do horário permitido';
 
 -- -----------------------------------------------------------------------------
 -- Tabela: projetos
