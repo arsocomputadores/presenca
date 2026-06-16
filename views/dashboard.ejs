@@ -146,6 +146,63 @@
   </div>
 <% } %>
 
+<% if (usuario.perfil === 'admin') { %>
+  <div class="card" style="margin-top:1.5rem">
+    <div class="card-header">
+      <h3>Pedidos de Alteração de Frequência</h3>
+    </div>
+    <div class="card-body">
+      <% if (!solicitacoesEdicaoFrequenciaPendentes || solicitacoesEdicaoFrequenciaPendentes.length === 0) { %>
+        <div class="alert alert-success" style="margin:0">
+          Não há pedidos pendentes de alteração de frequência no momento.
+        </div>
+      <% } else { %>
+        <div class="text-muted" style="margin-bottom:1rem">
+          <strong><%= solicitacoesEdicaoFrequenciaPendentes.length %></strong> pedido(s) de alteração aguardando decisão.
+        </div>
+        <div class="request-list">
+          <% solicitacoesEdicaoFrequenciaPendentes.forEach(function(item) { %>
+            <div class="request-card">
+              <div class="request-card-header">
+                <div>
+                  <div class="request-card-title"><%= item.solicitante_nome %></div>
+                  <div class="request-card-meta">
+                    <span><strong>Turma:</strong> <%= item.turma_nome %></span>
+                    <span><strong>Turno:</strong> <%= formatarTurno(item.turma_turno) %></span>
+                    <span><strong>Data:</strong> <%= formatarData(item.data) %></span>
+                    <span><strong>Horário:</strong> <%= item.horario %>º horário</span>
+                  </div>
+                </div>
+                <span class="badge badge-warning">Pendente</span>
+              </div>
+              <div class="request-card-body">
+                <div class="request-card-reason">
+                  <strong>Motivo:</strong> <%= item.motivo %>
+                </div>
+                <div class="request-card-actions">
+                  <form method="post" action="/frequencia/liberar-edicao">
+                    <input type="hidden" name="solicitacao_id" value="<%= item.id %>">
+                    <input type="hidden" name="origem" value="painel">
+                    <button type="submit" class="btn btn-primary">Liberar</button>
+                  </form>
+                  <form method="post" action="/frequencia/negar-edicao" onsubmit="return confirm('Deseja negar este pedido de alteração de frequência?');">
+                    <input type="hidden" name="solicitacao_id" value="<%= item.id %>">
+                    <input type="hidden" name="origem" value="painel">
+                    <button type="submit" class="btn btn-secondary">Negar</button>
+                  </form>
+                  <a href="/frequencia?turma_id=<%= item.turma_id %>&data=<%= item.data %>&horario=<%= item.horario %>" class="btn btn-outline">
+                    Abrir frequência
+                  </a>
+                </div>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </div>
+  </div>
+<% } %>
+
 <% if (usuario.perfil === 'admin' || usuario.perfil === 'direcao') { %>
   <div class="card" style="margin-top:1.5rem">
     <div class="card-header">

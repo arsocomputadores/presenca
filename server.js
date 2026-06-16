@@ -655,6 +655,7 @@ app.get('/', requireAuth, async (req, res) => {
     configuracaoDirecaoLancamento,
     pendenciasPainelBase,
     solicitacoesLancamentoForaHorarioPendentes,
+    solicitacoesEdicaoFrequenciaPendentes,
   ] = await Promise.all([
     store.getDashboardStats(req.session.usuario.id, req.session.usuario.perfil),
     req.session.usuario.perfil === 'admin'
@@ -671,6 +672,10 @@ app.get('/', requireAuth, async (req, res) => {
       && typeof store.listSolicitacoesLancamentoForaHorarioPendentes === 'function'
       ? store.listSolicitacoesLancamentoForaHorarioPendentes()
       : Promise.resolve([]),
+    req.session.usuario.perfil === 'admin'
+      && typeof store.listSolicitacoesEdicaoFrequenciaPendentes === 'function'
+      ? store.listSolicitacoesEdicaoFrequenciaPendentes()
+      : Promise.resolve([]),
   ]);
   const turmas = await store.getTurmas(req.session.usuario.perfil === 'professor' ? req.session.usuario.id : null);
   const pendenciasPainel = (pendenciasPainelBase || []).filter((item) => item.status === 'pendente');
@@ -683,6 +688,7 @@ app.get('/', requireAuth, async (req, res) => {
     dataReferenciaPainel,
     pendenciasPainel,
     solicitacoesLancamentoForaHorarioPendentes,
+    solicitacoesEdicaoFrequenciaPendentes,
     sucesso: req.query.sucesso || null,
     erro: req.query.erro || null,
   });
@@ -1600,6 +1606,7 @@ app.post('/frequencia/liberar-edicao', requireAuth, requirePerfil('admin'), asyn
     }
     const solicitacaoId = Number(req.body.solicitacao_id);
     const solicitacao = await store.liberarEdicaoFrequencia(solicitacaoId, req.session.usuario.id);
+    const origemPainel = String(req.body.origem || '').trim() === 'painel';
 
     if (typeof store.criarMensagemInterna === 'function') {
       await store.criarMensagemInterna({
@@ -1620,12 +1627,63 @@ app.post('/frequencia/liberar-edicao', requireAuth, requirePerfil('admin'), asyn
       });
     }
 
+    if (origemPainel) {
+      return res.redirect(`/?sucesso=${encodeURIComponent('Pedido de alteração de frequência liberado com sucesso.')}`);
+    }
     res.redirect(`/frequencia?turma_id=${solicitacao.turma_id}&data=${solicitacao.data}&horario=${solicitacao.horario}&sucesso=${encodeURIComponent('Alteração liberada para o solicitante.')}`);
   } catch (err) {
+    const origemPainel = String(req.body.origem || '').trim() === 'painel';
+    if (origemPainel) {
+      return res.redirect(`/?erro=${encodeURIComponent(err.message || 'Não foi possível liberar a alteração de frequência.')}`);
+    }
     const tId = Number(req.body.turma_id) || '';
     const data = String(req.body.data || '').trim();
     const hId = normalizeHorario(req.body.horario);
     res.redirect(`/frequencia?turma_id=${tId}&data=${data}&horario=${hId}&erro=${encodeURIComponent(err.message || 'Não foi possível liberar a alteração de frequência.')}`);
+  }
+});
+
+app.post('/frequencia/negar-edicao', requireAuth, requirePerfil('admin'), async (req, res) => {
+  try {
+    if (typeof store.negarEdicaoFrequencia !== 'function') {
+      throw new Error('Este recurso não está disponível neste modo do sistema.');
+    }
+    const solicitacaoId = Number(req.body.solicitacao_id);
+    const solicitacao = await store.negarEdicaoFrequencia(solicitacaoId, req.session.usuario.id);
+    const origemPainel = String(req.body.origem || '').trim() === 'painel';
+
+    if (typeof store.criarMensagemInterna === 'function') {
+      await store.criarMensagemInterna({
+        remetente_id: req.session.usuario.id,
+        titulo: `Pedido negado de alteração de frequência - ${solicitacao.turma_nome}`,
+        corpo: [
+          'Sua solicitação para alterar a frequência não foi liberada pelo administrador.',
+          '',
+          `Turma: ${solicitacao.turma_nome}`,
+          `Data: ${solicitacao.data}`,
+          `Horário: ${solicitacao.horario}º`,
+          '',
+          'Se ainda for necessário, entre em contato com a administração.',
+        ].join('\n'),
+        tipo_destino: 'usuarios',
+        perfil_destino: '',
+        usuario_ids: [solicitacao.solicitante_id],
+      });
+    }
+
+    if (origemPainel) {
+      return res.redirect(`/?sucesso=${encodeURIComponent('Pedido de alteração de frequência negado com sucesso.')}`);
+    }
+    res.redirect(`/frequencia?turma_id=${solicitacao.turma_id}&data=${solicitacao.data}&horario=${solicitacao.horario}&sucesso=${encodeURIComponent('Pedido de alteração de frequência negado.')}`);
+  } catch (err) {
+    const origemPainel = String(req.body.origem || '').trim() === 'painel';
+    if (origemPainel) {
+      return res.redirect(`/?erro=${encodeURIComponent(err.message || 'Não foi possível negar a alteração de frequência.')}`);
+    }
+    const tId = Number(req.body.turma_id) || '';
+    const data = String(req.body.data || '').trim();
+    const hId = normalizeHorario(req.body.horario);
+    res.redirect(`/frequencia?turma_id=${tId}&data=${data}&horario=${hId}&erro=${encodeURIComponent(err.message || 'Não foi possível negar a alteração de frequência.')}`);
   }
 });
 
