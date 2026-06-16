@@ -54,4 +54,12 @@ document.addEventListener('DOMContentLoaded', () => {
   codigo?.addEventListener('input', atualizarPreview);
   nome?.addEventListener('input', atualizarPreview);
   atualizarPreview();
+
+  const alertSucesso = document.getElementById('alert-freq-sucesso');
+  if (alertSucesso) {
+    alertSucesso.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    window.setTimeout(() => {
+      alertSucesso.classList.add('alert-save-success-visible');
+    }, 50);
+  }
 });

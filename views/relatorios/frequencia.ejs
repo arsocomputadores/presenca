@@ -9,8 +9,16 @@
       <div class="form-group">
         <label for="turma_id">Turma</label>
         <select name="turma_id" id="turma_id">
-          <% turmas.forEach(function(t) { %>
-            <option value="<%= t.id %>" <%= turmaId == t.id ? 'selected' : '' %>><%= t.nome %> — <%= t.serie %></option>
+          <% const grupos = turmasPorTurno || { matutino: { items: turmas }, vespertino: { items: [] }, outros: { items: [] } }; %>
+          <% ['matutino', 'vespertino', 'outros'].forEach(function(key) { %>
+            <% const grupo = grupos[key]; %>
+            <% if (grupo && grupo.items && grupo.items.length > 0) { %>
+              <optgroup label="<%= grupo.label %>">
+                <% grupo.items.forEach(function(t) { %>
+                  <option value="<%= t.id %>" <%= turmaId == t.id ? 'selected' : '' %>><%= t.nome %> — <%= t.serie %></option>
+                <% }) %>
+              </optgroup>
+            <% } %>
           <% }) %>
         </select>
       </div>

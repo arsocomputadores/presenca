@@ -294,6 +294,172 @@ body {
   flex-wrap: wrap;
 }
 
+.dashboard-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.dashboard-grid-admin {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.9fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.dashboard-main,
+.dashboard-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.dashboard-aside .card {
+  margin: 0;
+}
+
+.dashboard-quick-actions {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.dashboard-quick-actions .btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.dashboard-config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+.dashboard-config-card .card-body {
+  padding-top: 1rem;
+}
+
+.dashboard-config-body-stack {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.dashboard-config-text {
+  margin: 0.5rem 0 0;
+  font-size: 0.92rem;
+}
+
+.dashboard-config-actions {
+  margin-top: 0.75rem;
+}
+
+.dashboard-direcao-checkboxes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.5rem;
+}
+
+.dashboard-direcao-check {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.dashboard-card-priority {
+  border-color: rgba(220, 53, 69, 0.25);
+}
+
+.dashboard-pendencias-summary {
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.dashboard-turmas-card {
+  margin-top: 0;
+}
+
+.report-section {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1rem 1rem 0.25rem;
+  background: #fff;
+}
+
+.report-section-pendencias {
+  border-color: rgba(220, 53, 69, 0.35);
+  background: rgba(220, 53, 69, 0.03);
+}
+
+.report-section-lancados {
+  border-color: rgba(25, 135, 84, 0.25);
+  background: rgba(25, 135, 84, 0.03);
+}
+
+.report-section-faltas {
+  border-color: rgba(220, 53, 69, 0.25);
+}
+
+.report-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.report-section-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.report-turno-block + .report-turno-block {
+  margin-top: 1.25rem;
+}
+
+.report-turno-title {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.report-row-pendente {
+  background: rgba(220, 53, 69, 0.08);
+}
+
+.report-row-pendente td {
+  font-weight: 600;
+}
+
+.report-row-sem-responsavel {
+  background: rgba(255, 193, 7, 0.12);
+}
+
+.report-row-lancado {
+  background: rgba(25, 135, 84, 0.04);
+}
+
+.report-row-falta {
+  background: rgba(220, 53, 69, 0.05);
+}
+
+.alert-save-success {
+  border: 2px solid var(--success);
+  font-weight: 700;
+  font-size: 1.02rem;
+  box-shadow: 0 8px 24px rgba(25, 135, 84, 0.18);
+  animation: alertSavePulse 0.6s ease;
+}
+
+@keyframes alertSavePulse {
+  0% { transform: scale(0.98); opacity: 0.6; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 .quick-actions {
   display: flex;
   flex-wrap: wrap;
@@ -958,6 +1124,14 @@ textarea::placeholder {
 
 /* --- Responsividade Mobile (OVERRIDE TUDO) --- */
 @media (max-width: 768px) {
+  .dashboard-grid-admin {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-config-grid {
+    grid-template-columns: 1fr;
+  }
+
   .app-shell {
     flex-direction: column !important;
     display: flex !important;

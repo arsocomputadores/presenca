@@ -1,7 +1,7 @@
 <%- include('../partials/shell-start') %>
 
-<% if (sucesso) { %><div class="alert alert-success"><%= sucesso %></div><% } %>
-<% if (erro) { %><div class="alert alert-error"><%= erro %></div><% } %>
+<% if (sucesso) { %><div class="alert alert-success alert-save-success" id="alert-freq-sucesso" role="status"><%= sucesso %></div><% } %>
+<% if (erro) { %><div class="alert alert-error" id="alert-freq-erro"><%= erro %></div><% } %>
 
 <div class="card freq-page-card">
   <div class="card-header freq-card-header">

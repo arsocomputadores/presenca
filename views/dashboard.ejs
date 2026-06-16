@@ -7,342 +7,367 @@
   <div class="alert alert-danger"><%= erro %></div>
 <% } %>
 
-<div class="stats-grid">
-  <div class="stat-card">
-    <div class="label">Alunos ativos</div>
-    <div class="value"><%= stats.alunosAtivos %></div>
-  </div>
-  <div class="stat-card">
-    <div class="label">Turmas ativas</div>
-    <div class="value"><%= stats.turmasAtivas %></div>
-  </div>
-  <div class="stat-card">
-    <div class="label">Projetos ativos</div>
-    <div class="value"><%= stats.projetosAtivos %></div>
-    <div class="subvalue"><%= stats.alunosProjetos || 0 %> alunos em projetos</div>
-  </div>
-  <div class="stat-card">
-    <div class="label">Lançamentos hoje</div>
-    <div class="value"><%= stats.lancamentosHoje %></div>
-  </div>
-</div>
-
-<% if (usuario.perfil === 'admin' && configuracaoAvisoPendencia) { %>
-  <div class="card" style="margin-top:1.5rem">
-    <div class="card-header">
-      <h3>Aviso Automático de Pendência</h3>
+<div class="dashboard-page">
+  <div class="stats-grid dashboard-stats">
+    <div class="stat-card">
+      <div class="label">Alunos ativos</div>
+      <div class="value"><%= stats.alunosAtivos %></div>
     </div>
-    <div class="card-body dashboard-config-body">
-      <div>
-        <div style="font-weight:700; margin-bottom:.35rem">
-          Status:
-          <% if (configuracaoAvisoPendencia.ativo) { %>
-            <span class="badge badge-success">Liberado</span>
-          <% } else { %>
-            <span class="badge badge-warning">Pausado</span>
-          <% } %>
+    <div class="stat-card">
+      <div class="label">Turmas ativas</div>
+      <div class="value"><%= stats.turmasAtivas %></div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Projetos ativos</div>
+      <div class="value"><%= stats.projetosAtivos %></div>
+      <div class="subvalue"><%= stats.alunosProjetos || 0 %> alunos em projetos</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Lançamentos hoje</div>
+      <div class="value"><%= stats.lancamentosHoje %></div>
+    </div>
+  </div>
+
+  <% if (usuario.perfil === 'admin') { %>
+    <div class="dashboard-grid dashboard-grid-admin">
+      <div class="dashboard-main">
+        <% if (usuario.perfil === 'admin' || usuario.perfil === 'direcao') { %>
+          <div class="card dashboard-card-priority">
+            <div class="card-header">
+              <h3>Pendências do dia</h3>
+              <a href="/relatorios?data=<%= dataReferenciaPainel %>" class="btn btn-sm btn-outline">Relatório completo</a>
+            </div>
+            <div class="card-body">
+              <% if (!pendenciasPainel || pendenciasPainel.length === 0) { %>
+                <div class="alert alert-success" style="margin:0">
+                  Nenhuma pendência em <strong><%= formatarData(dataReferenciaPainel) %></strong>.
+                </div>
+              <% } else { %>
+                <div class="dashboard-pendencias-summary">
+                  <span class="badge badge-danger"><%= pendenciasPainel.length %></span>
+                  turma(s)/horário(s) ainda sem lançamento.
+                </div>
+                <% ['matutino', 'vespertino', 'outros'].forEach(function(key) { %>
+                  <% const section = pendenciasPainelPorTurno && pendenciasPainelPorTurno[key]; %>
+                  <% if (!section || section.items.length === 0) return; %>
+                  <div class="report-turno-block">
+                    <h4 class="report-turno-title"><%= section.label %></h4>
+                    <div class="table-wrap dashboard-pendencias-wrap">
+                      <table class="table table-mobile-cards">
+                        <thead>
+                          <tr>
+                            <th>Turma</th>
+                            <th>Horário</th>
+                            <th>Professor</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <% section.items.slice(0, 10).forEach(function(item) { %>
+                            <tr class="report-row-pendente">
+                              <td data-label="Turma"><strong><%= item.turma_nome %></strong></td>
+                              <td data-label="Horário"><%= item.horario %>º horário</td>
+                              <td data-label="Professor"><%= item.professor_nome || 'Sem professor definido' %></td>
+                            </tr>
+                          <% }) %>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                <% }) %>
+              <% } %>
+            </div>
+          </div>
+        <% } %>
+
+        <div class="card">
+          <div class="card-header">
+            <h3>Pedidos após o horário</h3>
+          </div>
+          <div class="card-body">
+            <% if (!solicitacoesLancamentoForaHorarioPendentes || solicitacoesLancamentoForaHorarioPendentes.length === 0) { %>
+              <div class="alert alert-success" style="margin:0">Nenhum pedido pendente.</div>
+            <% } else { %>
+              <div class="request-list">
+                <% solicitacoesLancamentoForaHorarioPendentes.forEach(function(item) { %>
+                  <div class="request-card">
+                    <div class="request-card-header">
+                      <div>
+                        <div class="request-card-title"><%= item.solicitante_nome %></div>
+                        <div class="request-card-meta">
+                          <span><strong>Turma:</strong> <%= item.turma_nome %></span>
+                          <span><strong>Data:</strong> <%= formatarData(item.data) %></span>
+                          <span><strong>Horário:</strong> <%= item.horario %>º</span>
+                        </div>
+                      </div>
+                      <span class="badge badge-warning">Pendente</span>
+                    </div>
+                    <div class="request-card-body">
+                      <div class="request-card-reason"><strong>Motivo:</strong> <%= item.motivo %></div>
+                      <div class="request-card-actions">
+                        <form method="post" action="/frequencia/liberar-lancamento-fora-horario">
+                          <input type="hidden" name="solicitacao_id" value="<%= item.id %>">
+                          <input type="hidden" name="origem" value="painel">
+                          <button type="submit" class="btn btn-primary">Liberar</button>
+                        </form>
+                        <form method="post" action="/frequencia/negar-lancamento-fora-horario" onsubmit="return confirm('Deseja negar este pedido?');">
+                          <input type="hidden" name="solicitacao_id" value="<%= item.id %>">
+                          <input type="hidden" name="origem" value="painel">
+                          <button type="submit" class="btn btn-secondary">Negar</button>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                <% }) %>
+              </div>
+            <% } %>
+          </div>
         </div>
-        <div class="text-muted">
-          Quando estiver liberado, o sistema envia a mensagem automática no fim do dia para professor com pendência de lançamento.
+
+        <div class="card">
+          <div class="card-header">
+            <h3>Pedidos de alteração de frequência</h3>
+          </div>
+          <div class="card-body">
+            <% if (!solicitacoesEdicaoFrequenciaPendentes || solicitacoesEdicaoFrequenciaPendentes.length === 0) { %>
+              <div class="alert alert-success" style="margin:0">Nenhum pedido pendente.</div>
+            <% } else { %>
+              <div class="request-list">
+                <% solicitacoesEdicaoFrequenciaPendentes.forEach(function(item) { %>
+                  <div class="request-card">
+                    <div class="request-card-header">
+                      <div>
+                        <div class="request-card-title"><%= item.solicitante_nome %></div>
+                        <div class="request-card-meta">
+                          <span><strong>Turma:</strong> <%= item.turma_nome %></span>
+                          <span><strong>Data:</strong> <%= formatarData(item.data) %></span>
+                          <span><strong>Horário:</strong> <%= item.horario %>º</span>
+                        </div>
+                      </div>
+                      <span class="badge badge-warning">Pendente</span>
+                    </div>
+                    <div class="request-card-body">
+                      <div class="request-card-reason"><strong>Motivo:</strong> <%= item.motivo %></div>
+                      <div class="request-card-actions">
+                        <form method="post" action="/frequencia/liberar-edicao">
+                          <input type="hidden" name="solicitacao_id" value="<%= item.id %>">
+                          <input type="hidden" name="origem" value="painel">
+                          <button type="submit" class="btn btn-primary">Liberar</button>
+                        </form>
+                        <form method="post" action="/frequencia/negar-edicao" onsubmit="return confirm('Deseja negar este pedido?');">
+                          <input type="hidden" name="solicitacao_id" value="<%= item.id %>">
+                          <input type="hidden" name="origem" value="painel">
+                          <button type="submit" class="btn btn-secondary">Negar</button>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                <% }) %>
+              </div>
+            <% } %>
+          </div>
         </div>
       </div>
-      <form method="post" action="/admin/configuracoes/alerta-pendencia-frequencia">
-        <input type="hidden" name="ativo" value="<%= configuracaoAvisoPendencia.ativo ? '0' : '1' %>" />
-        <button type="submit" class="btn <%= configuracaoAvisoPendencia.ativo ? 'btn-secondary' : 'btn-primary' %>">
-          <%= configuracaoAvisoPendencia.ativo ? 'Pausar Aviso Automático' : 'Liberar Aviso Automático' %>
-        </button>
-      </form>
-    </div>
-  </div>
-<% } %>
 
-<% if (usuario.perfil === 'admin' && configuracaoDirecaoLancamento) { %>
-  <div class="card" style="margin-top:1.5rem">
-    <div class="card-header">
-      <h3>Lançamento Pela Direção</h3>
-    </div>
-    <div class="card-body dashboard-config-body">
-      <div>
-        <div style="font-weight:700; margin-bottom:.35rem">
-          Status:
-          <% if (configuracaoDirecaoLancamento.ativo) { %>
-            <span class="badge badge-success">Liberado</span>
-          <% } else { %>
-            <span class="badge badge-warning">Bloqueado</span>
-          <% } %>
+      <aside class="dashboard-aside">
+        <div class="card">
+          <div class="card-header"><h3>Acesso rápido</h3></div>
+          <div class="card-body quick-actions dashboard-quick-actions">
+            <a href="/frequencia" class="btn btn-primary">Lançar frequência</a>
+            <a href="/alunos/novo" class="btn btn-secondary">Cadastrar aluno</a>
+            <a href="/relatorios" class="btn btn-secondary">Relatórios diários</a>
+            <a href="/relatorios/frequencia" class="btn btn-secondary">Relatório mensal</a>
+            <a href="/turmas" class="btn btn-outline">Gerenciar turmas</a>
+          </div>
         </div>
-        <div class="text-muted">
-          Quando estiver liberado, membros da direção podem acessar a tela de lançamento de frequência.
-        </div>
-        <div class="text-muted" style="margin-top:.35rem">
-          É neste card do Painel que o administrador autoriza ou bloqueia a direção no botão
-          <strong><%= configuracaoDirecaoLancamento.ativo ? 'Bloquear Direção' : 'Autorizar Direção' %></strong>.
-        </div>
-        <% if (configuracaoDirecaoLancamento.ativo) { %>
-          <div style="margin-top:1rem">
-            <div style="font-weight:700; margin-bottom:.35rem">Membros autorizados</div>
-            <div class="text-muted">
-              Se nenhum usuário estiver marcado, todos os membros ativos da direção ficam liberados.
-            </div>
-            <% if (!direcaoUsuarios || direcaoUsuarios.length === 0) { %>
-              <div class="alert alert-info" style="margin-top:.75rem; margin-bottom:0">
-                Nenhum usuário ativo da direção encontrado.
+
+        <div class="card">
+          <div class="card-header">
+            <h3>Consulta rápida</h3>
+            <a href="/alunos" class="btn btn-sm btn-outline">Ver todos</a>
+          </div>
+          <div class="card-body">
+            <form method="get" action="/alunos" class="freq-toolbar" style="margin-bottom:0">
+              <div class="form-group" style="flex:1">
+                <label for="busca">Nome do aluno</label>
+                <input type="text" id="busca" name="busca" placeholder="Pesquisar aluno..." />
               </div>
-            <% } else { %>
-              <form method="post" action="/admin/configuracoes/direcao-lancar-frequencia/usuarios" style="margin-top:.75rem">
-                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: .5rem;">
+              <div style="display:flex; align-items:flex-end">
+                <button type="submit" class="btn btn-primary">Buscar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="dashboard-config-grid">
+      <% if (configuracaoAvisoPendencia) { %>
+        <div class="card dashboard-config-card">
+          <div class="card-header"><h3>Aviso automático de pendência</h3></div>
+          <div class="card-body dashboard-config-body">
+            <div>
+              <% if (configuracaoAvisoPendencia.ativo) { %>
+                <span class="badge badge-success">Liberado</span>
+              <% } else { %>
+                <span class="badge badge-warning">Pausado</span>
+              <% } %>
+              <p class="text-muted dashboard-config-text">Envia mensagem automática ao professor com pendência no fim do dia.</p>
+            </div>
+            <form method="post" action="/admin/configuracoes/alerta-pendencia-frequencia">
+              <input type="hidden" name="ativo" value="<%= configuracaoAvisoPendencia.ativo ? '0' : '1' %>" />
+              <button type="submit" class="btn <%= configuracaoAvisoPendencia.ativo ? 'btn-secondary' : 'btn-primary' %>">
+                <%= configuracaoAvisoPendencia.ativo ? 'Pausar' : 'Liberar' %>
+              </button>
+            </form>
+          </div>
+        </div>
+      <% } %>
+
+      <% if (configuracaoDirecaoLancamento) { %>
+        <div class="card dashboard-config-card">
+          <div class="card-header"><h3>Lançamento pela direção</h3></div>
+          <div class="card-body dashboard-config-body dashboard-config-body-stack">
+            <div>
+              <% if (configuracaoDirecaoLancamento.ativo) { %>
+                <span class="badge badge-success">Liberado</span>
+              <% } else { %>
+                <span class="badge badge-warning">Bloqueado</span>
+              <% } %>
+              <p class="text-muted dashboard-config-text">Autoriza membros da direção a lançar frequência.</p>
+            </div>
+            <% if (configuracaoDirecaoLancamento.ativo && direcaoUsuarios && direcaoUsuarios.length > 0) { %>
+              <form method="post" action="/admin/configuracoes/direcao-lancar-frequencia/usuarios">
+                <div class="dashboard-direcao-checkboxes">
                   <% direcaoUsuarios.forEach(function(u) { %>
                     <% const checked = (direcaoUsuariosPermitidosCount === 0) ? true : direcaoUsuariosPermitidosSet.has(u.id); %>
-                    <label style="display:flex; gap:.5rem; align-items:center; padding:.5rem; border:1px solid var(--border); border-radius:10px;">
+                    <label class="dashboard-direcao-check">
                       <input type="checkbox" name="usuario_ids" value="<%= u.id %>" <%= checked ? 'checked' : '' %>>
-                      <span><strong><%= u.nome %></strong></span>
+                      <span><%= u.nome %></span>
                     </label>
                   <% }) %>
                 </div>
-                <div style="display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.75rem">
-                  <button type="submit" class="btn btn-primary">Salvar lista</button>
+                <div class="dashboard-config-actions">
+                  <button type="submit" class="btn btn-primary btn-sm">Salvar lista</button>
                 </div>
-              </form>
-              <form method="post" action="/admin/configuracoes/direcao-lancar-frequencia/usuarios" style="margin-top:.5rem">
-                <input type="hidden" name="limpar" value="1" />
-                <button type="submit" class="btn btn-outline">Permitir todos</button>
               </form>
             <% } %>
+            <form method="post" action="/admin/configuracoes/direcao-lancar-frequencia">
+              <input type="hidden" name="ativo" value="<%= configuracaoDirecaoLancamento.ativo ? '0' : '1' %>" />
+              <button type="submit" class="btn <%= configuracaoDirecaoLancamento.ativo ? 'btn-secondary' : 'btn-primary' %>">
+                <%= configuracaoDirecaoLancamento.ativo ? 'Bloquear direção' : 'Autorizar direção' %>
+              </button>
+            </form>
           </div>
+        </div>
+      <% } %>
+    </div>
+  <% } else { %>
+    <% if (usuario.perfil === 'admin' || usuario.perfil === 'direcao') { %>
+      <div class="card" style="margin-top:1.5rem">
+        <div class="card-header">
+          <h3>Pendências do Dia</h3>
+          <a href="/relatorios?data=<%= dataReferenciaPainel %>" class="btn btn-sm btn-outline">Abrir relatório</a>
+        </div>
+        <div class="card-body">
+          <% if (!pendenciasPainel || pendenciasPainel.length === 0) { %>
+            <div class="alert alert-success" style="margin:0">
+              Nenhuma pendência em <strong><%= formatarData(dataReferenciaPainel) %></strong>.
+            </div>
+          <% } else { %>
+            <div class="table-wrap dashboard-pendencias-wrap">
+              <table class="table table-mobile-cards">
+                <thead>
+                  <tr>
+                    <th>Turma</th>
+                    <th>Dia</th>
+                    <th>Horário</th>
+                    <th>Professor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% pendenciasPainel.slice(0, 10).forEach(function(item) { %>
+                    <tr class="report-row-pendente">
+                      <td data-label="Turma"><strong><%= item.turma_nome %></strong></td>
+                      <td data-label="Dia"><%= item.dia_semana_label %></td>
+                      <td data-label="Horário"><%= item.horario %>º horário</td>
+                      <td data-label="Professor"><%= item.professor_nome || 'Sem professor definido' %></td>
+                    </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    <% } %>
+
+    <div class="card" style="margin-top:1.5rem">
+      <div class="card-header"><h3>Acesso rápido</h3></div>
+      <div class="card-body quick-actions">
+        <% if (usuario.perfil === 'admin' || usuario.perfil === 'professor' || (usuario.perfil === 'direcao' && direcaoPodeLancarFrequencia)) { %>
+          <a href="/frequencia" class="btn btn-primary">Lançar frequência</a>
+        <% } %>
+        <% if (usuario.perfil === 'admin') { %>
+          <a href="/alunos/novo" class="btn btn-secondary">Cadastrar aluno</a>
+        <% } %>
+        <% if (usuario.perfil === 'admin' || usuario.perfil === 'coordenacao' || usuario.perfil === 'direcao') { %>
+          <a href="/relatorios" class="btn btn-secondary">Ver relatórios</a>
         <% } %>
       </div>
-      <form method="post" action="/admin/configuracoes/direcao-lancar-frequencia">
-        <input type="hidden" name="ativo" value="<%= configuracaoDirecaoLancamento.ativo ? '0' : '1' %>" />
-        <button type="submit" class="btn <%= configuracaoDirecaoLancamento.ativo ? 'btn-secondary' : 'btn-primary' %>">
-          <%= configuracaoDirecaoLancamento.ativo ? 'Bloquear Direção' : 'Autorizar Direção' %>
-        </button>
-      </form>
     </div>
-  </div>
-<% } %>
 
-<% if (usuario.perfil === 'admin') { %>
-  <div class="card" style="margin-top:1.5rem">
-    <div class="card-header">
-      <h3>Pedidos Após o Horário</h3>
-    </div>
-    <div class="card-body">
-      <% if (!solicitacoesLancamentoForaHorarioPendentes || solicitacoesLancamentoForaHorarioPendentes.length === 0) { %>
-        <div class="alert alert-success" style="margin:0">
-          Não há pedidos pendentes de lançamento fora do horário no momento.
+    <% if (usuario.perfil === 'coordenacao' || usuario.perfil === 'direcao') { %>
+      <div class="card" style="margin-top:1.5rem">
+        <div class="card-header">
+          <h3>Consulta rápida de aluno</h3>
+          <a href="/alunos" class="btn btn-sm btn-outline">Abrir consultas</a>
         </div>
-      <% } else { %>
-        <div class="text-muted" style="margin-bottom:1rem">
-          <strong><%= solicitacoesLancamentoForaHorarioPendentes.length %></strong> pedido(s) aguardando decisão.
-        </div>
-        <div class="request-list">
-          <% solicitacoesLancamentoForaHorarioPendentes.forEach(function(item) { %>
-            <div class="request-card">
-              <div class="request-card-header">
-                <div>
-                  <div class="request-card-title"><%= item.solicitante_nome %></div>
-                  <div class="request-card-meta">
-                    <span><strong>Turma:</strong> <%= item.turma_nome %></span>
-                    <span><strong>Turno:</strong> <%= formatarTurno(item.turma_turno) %></span>
-                    <span><strong>Data:</strong> <%= formatarData(item.data) %></span>
-                    <span><strong>Horário:</strong> <%= item.horario %>º horário</span>
-                  </div>
-                </div>
-                <span class="badge badge-warning">Pendente</span>
-              </div>
-              <div class="request-card-body">
-                <div class="request-card-reason">
-                  <strong>Motivo:</strong> <%= item.motivo %>
-                </div>
-                <div class="request-card-actions">
-                  <form method="post" action="/frequencia/liberar-lancamento-fora-horario">
-                    <input type="hidden" name="solicitacao_id" value="<%= item.id %>">
-                    <input type="hidden" name="origem" value="painel">
-                    <button type="submit" class="btn btn-primary">Liberar</button>
-                  </form>
-                  <form method="post" action="/frequencia/negar-lancamento-fora-horario" onsubmit="return confirm('Deseja negar este pedido de lançamento fora do horário?');">
-                    <input type="hidden" name="solicitacao_id" value="<%= item.id %>">
-                    <input type="hidden" name="origem" value="painel">
-                    <button type="submit" class="btn btn-secondary">Negar</button>
-                  </form>
-                  <a href="/frequencia?turma_id=<%= item.turma_id %>&data=<%= item.data %>&horario=<%= item.horario %>" class="btn btn-outline">
-                    Abrir frequência
-                  </a>
-                </div>
-              </div>
+        <div class="card-body">
+          <form method="get" action="/alunos" class="freq-toolbar" style="margin-bottom:0">
+            <div class="form-group" style="flex:1">
+              <label for="busca-coord">Nome do aluno</label>
+              <input type="text" id="busca-coord" name="busca" placeholder="Digite o nome para localizar..." />
             </div>
-          <% }) %>
-        </div>
-      <% } %>
-    </div>
-  </div>
-<% } %>
-
-<% if (usuario.perfil === 'admin') { %>
-  <div class="card" style="margin-top:1.5rem">
-    <div class="card-header">
-      <h3>Pedidos de Alteração de Frequência</h3>
-    </div>
-    <div class="card-body">
-      <% if (!solicitacoesEdicaoFrequenciaPendentes || solicitacoesEdicaoFrequenciaPendentes.length === 0) { %>
-        <div class="alert alert-success" style="margin:0">
-          Não há pedidos pendentes de alteração de frequência no momento.
-        </div>
-      <% } else { %>
-        <div class="text-muted" style="margin-bottom:1rem">
-          <strong><%= solicitacoesEdicaoFrequenciaPendentes.length %></strong> pedido(s) de alteração aguardando decisão.
-        </div>
-        <div class="request-list">
-          <% solicitacoesEdicaoFrequenciaPendentes.forEach(function(item) { %>
-            <div class="request-card">
-              <div class="request-card-header">
-                <div>
-                  <div class="request-card-title"><%= item.solicitante_nome %></div>
-                  <div class="request-card-meta">
-                    <span><strong>Turma:</strong> <%= item.turma_nome %></span>
-                    <span><strong>Turno:</strong> <%= formatarTurno(item.turma_turno) %></span>
-                    <span><strong>Data:</strong> <%= formatarData(item.data) %></span>
-                    <span><strong>Horário:</strong> <%= item.horario %>º horário</span>
-                  </div>
-                </div>
-                <span class="badge badge-warning">Pendente</span>
-              </div>
-              <div class="request-card-body">
-                <div class="request-card-reason">
-                  <strong>Motivo:</strong> <%= item.motivo %>
-                </div>
-                <div class="request-card-actions">
-                  <form method="post" action="/frequencia/liberar-edicao">
-                    <input type="hidden" name="solicitacao_id" value="<%= item.id %>">
-                    <input type="hidden" name="origem" value="painel">
-                    <button type="submit" class="btn btn-primary">Liberar</button>
-                  </form>
-                  <form method="post" action="/frequencia/negar-edicao" onsubmit="return confirm('Deseja negar este pedido de alteração de frequência?');">
-                    <input type="hidden" name="solicitacao_id" value="<%= item.id %>">
-                    <input type="hidden" name="origem" value="painel">
-                    <button type="submit" class="btn btn-secondary">Negar</button>
-                  </form>
-                  <a href="/frequencia?turma_id=<%= item.turma_id %>&data=<%= item.data %>&horario=<%= item.horario %>" class="btn btn-outline">
-                    Abrir frequência
-                  </a>
-                </div>
-              </div>
+            <div style="display:flex; align-items:flex-end">
+              <button type="submit" class="btn btn-primary">Pesquisar</button>
             </div>
-          <% }) %>
+          </form>
         </div>
+      </div>
+    <% } %>
+  <% } %>
+
+  <div class="card dashboard-turmas-card">
+    <div class="card-header">
+      <h3><%= usuario.perfil === 'admin' || usuario.perfil === 'professor' ? 'Minhas turmas' : 'Turmas cadastradas' %></h3>
+      <% if (usuario.perfil === 'admin') { %>
+        <a href="/turmas" class="btn btn-sm btn-outline">Ver todas</a>
       <% } %>
     </div>
-  </div>
-<% } %>
-
-<% if (usuario.perfil === 'admin' || usuario.perfil === 'direcao') { %>
-  <div class="card" style="margin-top:1.5rem">
-    <div class="card-header">
-      <h3>Pendências do Dia</h3>
-      <a href="/relatorios?data=<%= dataReferenciaPainel %>" class="btn btn-sm btn-outline">Abrir relatório</a>
-    </div>
     <div class="card-body">
-      <% if (!pendenciasPainel || pendenciasPainel.length === 0) { %>
-        <div class="alert alert-success" style="margin:0">
-          Nenhuma pendência de lançamento identificada em <strong><%= formatarData(dataReferenciaPainel) %></strong>.
-        </div>
-      <% } else { %>
-        <div style="font-weight:700; margin-bottom:.75rem">
-          <span class="badge badge-danger"><%= pendenciasPainel.length %></span>
-          pendência(s) de lançamento em <strong><%= formatarData(dataReferenciaPainel) %></strong>.
-        </div>
-        <div class="table-wrap dashboard-pendencias-wrap">
-          <table class="table table-mobile-cards">
-            <thead>
-              <tr>
-                <th>Turma</th>
-                <th>Dia</th>
-                <th>Horário</th>
-                <th>Professor</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% pendenciasPainel.slice(0, 10).forEach(function(item) { %>
-                <tr>
-                  <td data-label="Turma"><strong><%= item.turma_nome %></strong></td>
-                  <td data-label="Dia"><%= item.dia_semana_label %></td>
-                  <td data-label="Horário"><%= item.horario %>º horário</td>
-                  <td data-label="Professor"><%= item.professor_nome || 'Sem professor definido' %></td>
-                </tr>
-              <% }) %>
-            </tbody>
-          </table>
-        </div>
-        <% if (pendenciasPainel.length > 10) { %>
-          <div class="text-muted" style="margin-top:.75rem">
-            Exibindo as 10 primeiras pendências. Abra o relatório para ver a lista completa.
+      <% ['matutino', 'vespertino', 'outros'].forEach(function(key) { %>
+        <% const section = turmasPorTurno && turmasPorTurno[key]; %>
+        <% if (!section || section.items.length === 0) return; %>
+        <div class="report-turno-block">
+          <h4 class="report-turno-title"><%= section.label %></h4>
+          <div class="turmas-grid">
+            <% section.items.slice(0, 6).forEach(function(t) { %>
+              <% if (usuario.perfil === 'admin' || usuario.perfil === 'professor' || (usuario.perfil === 'direcao' && direcaoPodeLancarFrequencia)) { %>
+                <a href="/frequencia?turma_id=<%= t.id %>" class="turma-card" style="text-decoration:none;color:inherit">
+                  <h4><%= t.nome %></h4>
+                  <div class="meta"><%= t.serie %> · <%= formatarTurno(t.turno) %></div>
+                  <div class="count"><%= t.total_alunos %> alunos</div>
+                </a>
+              <% } else { %>
+                <div class="turma-card">
+                  <h4><%= t.nome %></h4>
+                  <div class="meta"><%= t.serie %> · <%= formatarTurno(t.turno) %></div>
+                  <div class="count"><%= t.total_alunos %> alunos</div>
+                </div>
+              <% } %>
+            <% }) %>
           </div>
-        <% } %>
-      <% } %>
-    </div>
-  </div>
-<% } %>
-
-<div class="card">
-  <div class="card-header">
-    <h3>Acesso rápido</h3>
-  </div>
-  <div class="card-body quick-actions">
-    <% if (usuario.perfil === 'admin' || usuario.perfil === 'professor' || (usuario.perfil === 'direcao' && direcaoPodeLancarFrequencia)) { %>
-      <a href="/frequencia" class="btn btn-primary">Lançar frequência</a>
-    <% } %>
-    <% if (usuario.perfil === 'admin') { %>
-      <a href="/alunos/novo" class="btn btn-secondary">Cadastrar aluno</a>
-    <% } %>
-    <% if (usuario.perfil === 'admin' || usuario.perfil === 'coordenacao' || usuario.perfil === 'direcao') { %>
-      <a href="/relatorios" class="btn btn-secondary">Ver relatórios</a>
-    <% } %>
-  </div>
-</div>
-
-<% if (usuario.perfil === 'admin' || usuario.perfil === 'coordenacao' || usuario.perfil === 'direcao') { %>
-  <div class="card" style="margin-top:1.5rem">
-    <div class="card-header">
-      <h3>Consulta rápida de aluno</h3>
-      <a href="/alunos" class="btn btn-sm btn-outline">Abrir consultas</a>
-    </div>
-    <div class="card-body">
-      <form method="get" action="/alunos" class="freq-toolbar" style="margin-bottom:0">
-        <div class="form-group" style="flex:1">
-          <label for="busca">Nome do aluno</label>
-          <input type="text" id="busca" name="busca" placeholder="Digite o nome para localizar..." />
         </div>
-        <div style="display:flex; align-items:flex-end">
-          <button type="submit" class="btn btn-primary">Pesquisar</button>
-        </div>
-      </form>
-    </div>
-  </div>
-<% } %>
-
-<div class="card" style="margin-top:1.5rem">
-  <div class="card-header">
-    <h3><%= usuario.perfil === 'admin' || usuario.perfil === 'professor' ? 'Minhas Turmas' : 'Turmas cadastradas' %></h3>
-    <% if (usuario.perfil === 'admin') { %>
-      <a href="/turmas" class="btn btn-sm btn-outline">Ver todas</a>
-    <% } %>
-  </div>
-  <div class="card-body">
-    <div class="turmas-grid">
-      <% turmas.slice(0, 6).forEach(function(t) { %>
-        <% if (usuario.perfil === 'admin' || usuario.perfil === 'professor' || (usuario.perfil === 'direcao' && direcaoPodeLancarFrequencia)) { %>
-          <a href="/frequencia?turma_id=<%= t.id %>" class="turma-card" style="text-decoration:none;color:inherit">
-            <h4><%= t.nome %></h4>
-            <div class="meta"><%= t.serie %> · <%= formatarTurno(t.turno) %></div>
-            <div class="count"><%= t.total_alunos %> alunos</div>
-          </a>
-        <% } else { %>
-          <div class="turma-card">
-            <h4><%= t.nome %></h4>
-            <div class="meta"><%= t.serie %> · <%= formatarTurno(t.turno) %></div>
-            <div class="count"><%= t.total_alunos %> alunos</div>
-          </div>
-        <% } %>
       <% }) %>
     </div>
   </div>

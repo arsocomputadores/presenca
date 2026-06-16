@@ -87,7 +87,7 @@
               <div class="value" style="color: var(--warning)"><%= resumoPeriodo.justificadas %></div>
             </div>
             <div class="stat-card">
-              <div class="label">Total</div>
+              <div class="label">Total de registros</div>
               <div class="value"><%= resumoPeriodo.total %></div>
             </div>
           </div>
@@ -95,35 +95,87 @@
           <% if (!historico || historico.length === 0) { %>
             <div class="alert alert-info">Nenhum registro de frequência para este período.</div>
           <% } else { %>
-            <div class="table-wrap">
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th>Data</th>
-                    <th>Horário</th>
-                    <th>Status</th>
-                    <th>Observação</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <% historico.forEach(function(h) { %>
+            <div class="report-section report-section-faltas" style="margin-bottom:1.5rem">
+              <div class="report-section-header">
+                <h3>Faltas e justificadas lançadas</h3>
+                <span class="badge badge-danger"><%= (historicoFaltas || []).length %></span>
+              </div>
+              <% if (!historicoFaltas || historicoFaltas.length === 0) { %>
+                <div class="alert alert-success" style="margin:0">Nenhuma falta ou justificativa registrada no período.</div>
+              <% } else { %>
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead>
+                      <tr>
+                        <th>Data</th>
+                        <th>Horário</th>
+                        <th>Turma</th>
+                        <th>Status</th>
+                        <th>Lançado por</th>
+                        <th>Observação</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% historicoFaltas.forEach(function(h) { %>
+                        <tr class="report-row-falta">
+                          <td data-label="Data"><strong><%= formatarData(h.data) %></strong></td>
+                          <td data-label="Horário"><span class="badge badge-info"><%= h.horario %>º Horário</span></td>
+                          <td data-label="Turma"><%= h.turma_nome || '—' %></td>
+                          <td data-label="Status">
+                            <% if (h.status === 'F') { %>
+                              <span class="badge badge-danger">Falta</span>
+                            <% } else { %>
+                              <span class="badge badge-warning">Justificada</span>
+                            <% } %>
+                          </td>
+                          <td data-label="Lançado por"><%= h.lancado_por_nome || '—' %></td>
+                          <td data-label="Observação"><%= h.observacao || '—' %></td>
+                        </tr>
+                      <% }) %>
+                    </tbody>
+                  </table>
+                </div>
+              <% } %>
+            </div>
+
+            <div class="report-section">
+              <div class="report-section-header">
+                <h3>Histórico completo do período</h3>
+              </div>
+              <div class="table-wrap">
+                <table class="table">
+                  <thead>
                     <tr>
-                      <td data-label="Data"><strong><%= formatarData(h.data) %></strong></td>
-                      <td data-label="Horário"><span class="badge badge-info"><%= h.horario %>º Horário</span></td>
-                      <td data-label="Status">
-                        <% if (h.status === 'P') { %>
-                          <span class="badge badge-success">Presente</span>
-                        <% } else if (h.status === 'F') { %>
-                          <span class="badge badge-danger">Falta</span>
-                        <% } else { %>
-                          <span class="badge badge-warning">Justificada</span>
-                        <% } %>
-                      </td>
-                      <td data-label="Observação"><%= h.observacao || '—' %></td>
+                      <th>Data</th>
+                      <th>Horário</th>
+                      <th>Turma</th>
+                      <th>Status</th>
+                      <th>Lançado por</th>
+                      <th>Observação</th>
                     </tr>
-                  <% }) %>
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    <% historico.forEach(function(h) { %>
+                      <tr>
+                        <td data-label="Data"><strong><%= formatarData(h.data) %></strong></td>
+                        <td data-label="Horário"><span class="badge badge-info"><%= h.horario %>º Horário</span></td>
+                        <td data-label="Turma"><%= h.turma_nome || '—' %></td>
+                        <td data-label="Status">
+                          <% if (h.status === 'P') { %>
+                            <span class="badge badge-success">Presente</span>
+                          <% } else if (h.status === 'F') { %>
+                            <span class="badge badge-danger">Falta</span>
+                          <% } else { %>
+                            <span class="badge badge-warning">Justificada</span>
+                          <% } %>
+                        </td>
+                        <td data-label="Lançado por"><%= h.lancado_por_nome || '—' %></td>
+                        <td data-label="Observação"><%= h.observacao || '—' %></td>
+                      </tr>
+                    <% }) %>
+                  </tbody>
+                </table>
+              </div>
             </div>
           <% } %>
         </div>

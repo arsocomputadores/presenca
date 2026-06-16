@@ -9,9 +9,19 @@
   </div>
   <div class="card-body">
     <% 
-      const totalPendencias = (pendencias || []).filter((p) => p.status === 'pendente').length;
-      const totalSemResponsavel = (pendencias || []).filter((p) => p.status === 'sem_responsavel').length;
-      const totalLancados = (pendencias || []).filter((p) => p.status === 'lancado').length;
+      const totalPendencias = (pendenciasNaoLancadas || []).filter((p) => p.status === 'pendente').length;
+      const totalSemResponsavel = (pendenciasNaoLancadas || []).filter((p) => p.status === 'sem_responsavel').length;
+      const totalLancados = (lancamentos || []).length;
+      const turnoSections = [
+        lancamentosPorTurno?.matutino,
+        lancamentosPorTurno?.vespertino,
+        lancamentosPorTurno?.outros,
+      ].filter(Boolean);
+      const pendenciaSections = [
+        pendenciasNaoLancadasPorTurno?.matutino,
+        pendenciasNaoLancadasPorTurno?.vespertino,
+        pendenciasNaoLancadasPorTurno?.outros,
+      ].filter(Boolean);
     %>
     <div class="report-toolbar">
       <form method="get" action="/relatorios" class="report-filter-form">
@@ -33,126 +43,122 @@
           <button type="submit" class="btn btn-primary">Filtrar</button>
         </div>
       </form>
-      
+
       <div class="report-toolbar-actions">
-      <a href="/relatorios/exportar/excel?data=<%= data %><%= horarioFiltro ? '&horario=' + horarioFiltro : '' %>" class="btn btn-secondary no-print">
-         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="vertical-align: middle; margin-right: 0.25rem;">
-           <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"/>
-           <path d="M4.5 12.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5z"/>
-         </svg>
-         Exportar Excel
-       </a>
-       <button onclick="window.print()" class="btn btn-outline no-print">
-         Imprimir PDF
-       </button>
-      <% if (usuario && usuario.perfil === 'admin') { %>
-        <form action="/frequencias/limpar" method="post" class="no-print" style="margin:0"
-          onsubmit="return confirm('Tem certeza que deseja LIMPAR TODO o histórico de frequência?\\n\\nIsso vai apagar todos os registros já lançados (P/F/J) de todas as turmas, datas e horários.');">
-          <button type="submit" class="btn btn-danger">Limpar histórico</button>
-        </form>
-      <% } %>
+        <a href="/relatorios/exportar/excel?data=<%= data %><%= horarioFiltro ? '&horario=' + horarioFiltro : '' %>" class="btn btn-secondary no-print">Exportar Excel</a>
+        <button onclick="window.print()" class="btn btn-outline no-print">Imprimir PDF</button>
+        <% if (usuario && usuario.perfil === 'admin') { %>
+          <form action="/frequencias/limpar" method="post" class="no-print" style="margin:0"
+            onsubmit="return confirm('Tem certeza que deseja LIMPAR TODO o histórico de frequência?\\n\\nIsso vai apagar todos os registros já lançados (P/F/J) de todas as turmas, datas e horários.');">
+            <button type="submit" class="btn btn-danger">Limpar histórico</button>
+          </form>
+        <% } %>
       </div>
-     </div>
+    </div>
 
     <div class="stats-grid" style="margin-top:1rem">
       <div class="stat-card">
-        <div class="label">Lançamentos Identificados</div>
-        <div class="value"><%= totalLancados %></div>
+        <div class="label">Lançamentos realizados</div>
+        <div class="value" style="color:var(--success)"><%= totalLancados %></div>
       </div>
       <div class="stat-card">
-        <div class="label">Pendências do Dia</div>
-        <div class="value"><%= totalPendencias %></div>
+        <div class="label">Ainda não lançaram</div>
+        <div class="value" style="color:var(--danger)"><%= totalPendencias %></div>
       </div>
       <div class="stat-card">
-        <div class="label">Sem Professor Definido</div>
+        <div class="label">Sem professor definido</div>
         <div class="value"><%= totalSemResponsavel %></div>
       </div>
     </div>
 
-    <% if (lancamentos.length === 0) { %>
-      <div class="alert alert-warning" style="margin-top: 1rem;">
-        Nenhum lançamento de frequência encontrado para o dia <%= formatarData(data) %>.
+    <div class="report-section report-section-pendencias" style="margin-top:1.5rem">
+      <div class="report-section-header">
+        <h3>Ainda não lançaram</h3>
+        <span class="badge badge-danger"><%= (pendenciasNaoLancadas || []).length %> turma(s)/horário(s)</span>
       </div>
-    <% } else { %>
-        <div class="table-wrap report-table-wrap" style="margin-top: 1.5rem;">
-        <table class="table table-mobile-cards">
-          <thead>
-            <tr>
-              <th>Turma</th>
-              <th>Turno</th>
-              <th>Horário</th>
-              <th>Lançado por</th>
-              <th>Data/Hora do Registro</th>
-              <th>Total de Alunos</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% lancamentos.forEach(function(l) { %>
-              <tr>
-                <td data-label="Turma"><strong><%= l.turma_nome %></strong></td>
-                <td data-label="Turno"><%= formatarTurno(l.turno) %></td>
-                <td data-label="Horário"><span class="badge badge-info"><%= l.horario %>º Horário</span></td>
-                <td data-label="Lançado por"><%= l.lancado_por %></td>
-                <td data-label="Data/Hora do Registro"><%= formatarDataHora(l.data_lancamento) %></td>
-                <td data-label="Total de Alunos"><%= l.total_registros %> alunos</td>
-              </tr>
-            <% }) %>
-          </tbody>
-        </table>
-      </div>
-    <% } %>
-
-    <div class="card" style="margin-top:1.5rem">
-      <div class="card-header">
-        <h3>
-          Pendências do Dia
-          <% if (Number(horarioFiltro) === 1 || Number(horarioFiltro) === 6) { %>
-            — <%= horarioFiltro %>º horário
-          <% } %>
-        </h3>
-      </div>
-      <div class="card-body">
-        <% if (!pendencias || pendencias.length === 0) { %>
-          <div class="alert alert-info">
-            Não há pendências registradas para <%= formatarData(data) %><%= Number(horarioFiltro) === 1 || Number(horarioFiltro) === 6 ? ' no ' + horarioFiltro + 'º horário' : '' %>.
-          </div>
-        <% } else { %>
-          <div class="table-wrap report-table-wrap">
-            <table class="table table-mobile-cards">
-              <thead>
-                <tr>
-                  <th>Turma</th>
-                  <th>Turno</th>
-                  <th>Horário</th>
-                  <th>Professor Responsável</th>
-                  <th>Status</th>
-                  <th>Lançado Por</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% pendencias.forEach(function(item) { %>
+      <% if (!pendenciasNaoLancadas || pendenciasNaoLancadas.length === 0) { %>
+        <div class="alert alert-success" style="margin:0">
+          Todos os lançamentos previstos para <%= formatarData(data) %> foram realizados.
+        </div>
+      <% } else { %>
+        <% pendenciaSections.forEach(function(section) { %>
+          <% if (section.items.length === 0) return; %>
+          <div class="report-turno-block">
+            <h4 class="report-turno-title"><%= section.label %></h4>
+            <div class="table-wrap report-table-wrap">
+              <table class="table table-mobile-cards">
+                <thead>
                   <tr>
-                    <td data-label="Turma"><strong><%= item.turma_nome %></strong></td>
-                    <td data-label="Turno"><%= formatarTurno(item.turno) %></td>
-                    <td data-label="Horário"><span class="badge badge-info"><%= item.horario %>º Horário</span></td>
-                    <td data-label="Professor Responsável"><%= item.professor_nome || 'Sem professor definido' %></td>
-                    <td data-label="Status">
-                      <% if (item.status === 'pendente') { %>
-                        <span class="badge badge-danger">Pendente</span>
-                      <% } else if (item.status === 'lancado') { %>
-                        <span class="badge badge-success">Lançado</span>
-                      <% } else { %>
-                        <span class="badge badge-warning">Sem responsável</span>
-                      <% } %>
-                    </td>
-                    <td data-label="Lançado Por"><%= item.lancado_por || '—' %></td>
+                    <th>Turma</th>
+                    <th>Horário</th>
+                    <th>Professor responsável</th>
+                    <th>Situação</th>
                   </tr>
-                <% }) %>
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  <% section.items.forEach(function(item) { %>
+                    <tr class="report-row-pendente <%= item.status === 'sem_responsavel' ? 'report-row-sem-responsavel' : '' %>">
+                      <td data-label="Turma"><strong><%= item.turma_nome %></strong></td>
+                      <td data-label="Horário"><span class="badge badge-info"><%= item.horario %>º Horário</span></td>
+                      <td data-label="Professor responsável"><%= item.professor_nome || 'Sem professor definido' %></td>
+                      <td data-label="Situação">
+                        <% if (item.status === 'pendente') { %>
+                          <span class="badge badge-danger">Não lançou</span>
+                        <% } else { %>
+                          <span class="badge badge-warning">Sem responsável</span>
+                        <% } %>
+                      </td>
+                    </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
           </div>
-        <% } %>
+        <% }) %>
+      <% } %>
+    </div>
+
+    <div class="report-section report-section-lancados" style="margin-top:1.5rem">
+      <div class="report-section-header">
+        <h3>Lançamentos realizados</h3>
+        <span class="badge badge-success"><%= totalLancados %></span>
       </div>
+      <% if (!lancamentos || lancamentos.length === 0) { %>
+        <div class="alert alert-warning" style="margin:0">
+          Nenhum lançamento de frequência encontrado para <%= formatarData(data) %>.
+        </div>
+      <% } else { %>
+        <% turnoSections.forEach(function(section) { %>
+          <% if (section.items.length === 0) return; %>
+          <div class="report-turno-block">
+            <h4 class="report-turno-title"><%= section.label %></h4>
+            <div class="table-wrap report-table-wrap">
+              <table class="table table-mobile-cards">
+                <thead>
+                  <tr>
+                    <th>Turma</th>
+                    <th>Horário</th>
+                    <th>Lançado por</th>
+                    <th>Data/Hora do registro</th>
+                    <th>Total de alunos</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% section.items.forEach(function(l) { %>
+                    <tr class="report-row-lancado">
+                      <td data-label="Turma"><strong><%= l.turma_nome %></strong></td>
+                      <td data-label="Horário"><span class="badge badge-info"><%= l.horario %>º Horário</span></td>
+                      <td data-label="Lançado por"><%= l.lancado_por %></td>
+                      <td data-label="Data/Hora do registro"><%= formatarDataHora(l.data_lancamento) %></td>
+                      <td data-label="Total de alunos"><%= l.total_registros %> alunos</td>
+                    </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        <% }) %>
+      <% } %>
     </div>
   </div>
 </div>

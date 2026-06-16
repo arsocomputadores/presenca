@@ -8,6 +8,11 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 const { isMysqlEnabled } = require('./lib/db');
 const store = isMysqlEnabled() ? require('./lib/mysqlStore') : require('./lib/demoStore');
+const {
+  splitByTurnoPreservingOrder,
+  splitTurmasByTurnoPreservingOrder,
+  normalizeFrequenciaStatus,
+} = require('./lib/reportUtils');
 
 function ordenarAlunosPorNome(lista = []) {
   const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
@@ -731,9 +736,13 @@ app.get('/', requireAuth, async (req, res) => {
   );
   const turmas = await store.getTurmas(req.session.usuario.perfil === 'professor' ? req.session.usuario.id : null);
   const pendenciasPainel = (pendenciasPainelBase || []).filter((item) => item.status === 'pendente');
+  const pendenciasPainelPorTurno = splitByTurnoPreservingOrder(pendenciasPainel);
+  const turmasPorTurno = splitTurmasByTurnoPreservingOrder(turmas);
   res.render('dashboard', {
     stats,
     turmas,
+    turmasPorTurno,
+    pendenciasPainelPorTurno,
     titulo: 'Painel',
     configuracaoAvisoPendencia,
     configuracaoDirecaoLancamento,
@@ -831,6 +840,7 @@ app.get('/relatorios/frequencia', requireAuth, requirePerfil('admin', 'coordenac
   res.render('relatorios/frequencia', {
     titulo: 'Relatório de Frequência por Turma',
     turmas,
+    turmasPorTurno: splitTurmasByTurnoPreservingOrder(turmas),
     turmaId: tId,
     mes: m,
     ano: a,
@@ -953,15 +963,21 @@ app.get('/relatorios/individual', requireAuth, requirePerfil('admin', 'coordenac
     historico = await store.getHistoricoIndividualPorPeriodo(alunoSelecionado.id, dataInicio, dataFim);
     resumoPeriodo = historico.reduce(
       (acc, item) => {
+        const status = normalizeFrequenciaStatus(item.status);
         acc.total += 1;
-        if (item.status === 'P') acc.presencas += 1;
-        if (item.status === 'F') acc.faltas += 1;
-        if (item.status === 'J') acc.justificadas += 1;
+        if (status === 'P') acc.presencas += 1;
+        if (status === 'F') acc.faltas += 1;
+        if (status === 'J') acc.justificadas += 1;
         return acc;
       },
       { presencas: 0, faltas: 0, justificadas: 0, total: 0 }
     );
   }
+
+  const historicoFaltas = historico.filter((item) => {
+    const status = normalizeFrequenciaStatus(item.status);
+    return status === 'F' || status === 'J';
+  });
 
   res.render('relatorios/individual', {
     titulo: 'Relatório Individual',
@@ -969,6 +985,7 @@ app.get('/relatorios/individual', requireAuth, requirePerfil('admin', 'coordenac
     alunosEncontrados,
     alunoSelecionado,
     historico,
+    historicoFaltas,
     resumoPeriodo,
     filtros: { dataInicio, dataFim },
     sucesso: req.query.sucesso || null,
@@ -996,10 +1013,11 @@ app.get('/relatorios/individual/exportar', requireAuth, requirePerfil('admin', '
 
     const resumoPeriodo = historico.reduce(
       (acc, item) => {
+        const status = normalizeFrequenciaStatus(item.status);
         acc.total += 1;
-        if (item.status === 'P') acc.presencas += 1;
-        if (item.status === 'F') acc.faltas += 1;
-        if (item.status === 'J') acc.justificadas += 1;
+        if (status === 'P') acc.presencas += 1;
+        if (status === 'F') acc.faltas += 1;
+        if (status === 'J') acc.justificadas += 1;
         return acc;
       },
       { presencas: 0, faltas: 0, justificadas: 0, total: 0 }
@@ -1034,7 +1052,12 @@ app.get('/relatorios/individual/exportar', requireAuth, requirePerfil('admin', '
       { header: 'Observação', key: 'observacao', width: 40 },
     ];
 
-    const statusLabel = (s) => (s === 'P' ? 'Presente' : s === 'F' ? 'Falta' : 'Justificada');
+    const statusLabel = (s) => {
+      const status = normalizeFrequenciaStatus(s);
+      if (status === 'P') return 'Presente';
+      if (status === 'F') return 'Falta';
+      return 'Justificada';
+    };
     historico.forEach((h) => {
       histSheet.addRow({
         data: res.locals.formatarData(h.data),
@@ -1618,7 +1641,7 @@ app.post('/frequencia', requireAuth, async (req, res) => {
     if (lancamentoForaHorarioLiberado?.id && typeof store.marcarSolicitacaoLancamentoForaHorarioAtendida === 'function') {
       await store.marcarSolicitacaoLancamentoForaHorarioAtendida(lancamentoForaHorarioLiberado.id);
     }
-    res.redirect(`/frequencia?turma_id=${tId}&data=${data}&horario=${hId}&sucesso=Frequência salva.`);
+    res.redirect(`/frequencia?turma_id=${tId}&data=${data}&horario=${hId}&sucesso=${encodeURIComponent('Frequência salva com sucesso!')}`);
   } catch (err) {
     res.redirect(`/frequencia?turma_id=${tId}&data=${data}&horario=${hId}&erro=${encodeURIComponent(err.message || 'Não foi possível salvar a frequência.')}`);
   }
@@ -2117,12 +2140,18 @@ app.get('/relatorios', requireAuth, requirePerfil('admin', 'coordenacao', 'direc
   const pendencias = horarioFiltro
     ? pendenciasBase.filter((item) => Number(item.horario) === Number(horarioFiltro))
     : pendenciasBase;
+  const pendenciasNaoLancadas = pendencias.filter((item) => item.status === 'pendente' || item.status === 'sem_responsavel');
+  const lancamentosPorTurno = splitByTurnoPreservingOrder(lancamentos);
+  const pendenciasNaoLancadasPorTurno = splitByTurnoPreservingOrder(pendenciasNaoLancadas);
   res.render('relatorios/index', {
     titulo: 'Relatórios de Lançamentos',
     data,
     horarioFiltro,
     lancamentos,
+    lancamentosPorTurno,
     pendencias,
+    pendenciasNaoLancadas,
+    pendenciasNaoLancadasPorTurno,
     sucesso: req.query.sucesso || null,
     erro: req.query.erro || null,
   });
