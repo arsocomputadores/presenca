@@ -78,10 +78,37 @@ function paginateItems(items = [], pageRaw = 1, perPage = 10) {
   };
 }
 
-function getTodayYmdLocal() {
-  const now = new Date();
-  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
-  return local.toISOString().slice(0, 10);
+const APP_TIMEZONE = 'America/Sao_Paulo';
+
+function getTimeZoneParts(date = new Date(), timeZone = APP_TIMEZONE) {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  });
+  const parts = formatter.formatToParts(date);
+  const map = {};
+  for (const part of parts) {
+    if (part.type !== 'literal') map[part.type] = part.value;
+  }
+  return {
+    year: Number(map.year),
+    month: Number(map.month),
+    day: Number(map.day),
+    hour: Number(map.hour),
+    minute: Number(map.minute),
+    second: Number(map.second),
+    ymd: `${map.year}-${map.month}-${map.day}`,
+  };
+}
+
+function getTodayYmdLocal(date = new Date()) {
+  return getTimeZoneParts(date).ymd;
 }
 
 function parseDateTimeLocal(value) {
@@ -129,7 +156,8 @@ function getDiaSemanaInfo(dataStr) {
 }
 
 function jaPassouHorarioAlerta(now = new Date()) {
-  const minutosAtuais = now.getHours() * 60 + now.getMinutes();
+  const agora = getTimeZoneParts(now);
+  const minutosAtuais = agora.hour * 60 + agora.minute;
   const minutosCorte = HORA_ALERTA_PENDENCIA * 60 + MINUTO_ALERTA_PENDENCIA;
   return minutosAtuais >= minutosCorte;
 }
@@ -160,10 +188,11 @@ function getLimiteLancamentoProfessor(turno, horario) {
 }
 
 function professorPodeLancarAteHorario(turno, horario, dataStr, now = new Date()) {
-  if (!dataStr || dataStr !== getTodayYmdLocal()) return true;
+  if (!dataStr || dataStr !== getTodayYmdLocal(now)) return true;
   const limite = getLimiteLancamentoProfessor(turno, horario);
   if (!limite) return true;
-  const minutosAtuais = now.getHours() * 60 + now.getMinutes();
+  const agora = getTimeZoneParts(now);
+  const minutosAtuais = agora.hour * 60 + agora.minute;
   const minutosLimite = limite.hora * 60 + limite.minuto;
   return minutosAtuais <= minutosLimite;
 }
