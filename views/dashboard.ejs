@@ -78,6 +78,38 @@
           É neste card do Painel que o administrador autoriza ou bloqueia a direção no botão
           <strong><%= configuracaoDirecaoLancamento.ativo ? 'Bloquear Direção' : 'Autorizar Direção' %></strong>.
         </div>
+        <% if (configuracaoDirecaoLancamento.ativo) { %>
+          <div style="margin-top:1rem">
+            <div style="font-weight:700; margin-bottom:.35rem">Membros autorizados</div>
+            <div class="text-muted">
+              Se nenhum usuário estiver marcado, todos os membros ativos da direção ficam liberados.
+            </div>
+            <% if (!direcaoUsuarios || direcaoUsuarios.length === 0) { %>
+              <div class="alert alert-info" style="margin-top:.75rem; margin-bottom:0">
+                Nenhum usuário ativo da direção encontrado.
+              </div>
+            <% } else { %>
+              <form method="post" action="/admin/configuracoes/direcao-lancar-frequencia/usuarios" style="margin-top:.75rem">
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: .5rem;">
+                  <% direcaoUsuarios.forEach(function(u) { %>
+                    <% const checked = (direcaoUsuariosPermitidosCount === 0) ? true : direcaoUsuariosPermitidosSet.has(u.id); %>
+                    <label style="display:flex; gap:.5rem; align-items:center; padding:.5rem; border:1px solid var(--border); border-radius:10px;">
+                      <input type="checkbox" name="usuario_ids" value="<%= u.id %>" <%= checked ? 'checked' : '' %>>
+                      <span><strong><%= u.nome %></strong></span>
+                    </label>
+                  <% }) %>
+                </div>
+                <div style="display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.75rem">
+                  <button type="submit" class="btn btn-primary">Salvar lista</button>
+                </div>
+              </form>
+              <form method="post" action="/admin/configuracoes/direcao-lancar-frequencia/usuarios" style="margin-top:.5rem">
+                <input type="hidden" name="limpar" value="1" />
+                <button type="submit" class="btn btn-outline">Permitir todos</button>
+              </form>
+            <% } %>
+          </div>
+        <% } %>
       </div>
       <form method="post" action="/admin/configuracoes/direcao-lancar-frequencia">
         <input type="hidden" name="ativo" value="<%= configuracaoDirecaoLancamento.ativo ? '0' : '1' %>" />

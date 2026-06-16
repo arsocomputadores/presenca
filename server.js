@@ -263,7 +263,11 @@ async function usuarioPodeAcessarFrequencia(usuario) {
   if (usuario.perfil === 'admin' || usuario.perfil === 'professor') return true;
   if (usuario.perfil !== 'direcao') return false;
   const configuracao = await getConfiguracaoDirecaoLancarFrequenciaSafe();
-  return Boolean(configuracao?.ativo);
+  if (!Boolean(configuracao?.ativo)) return false;
+  if (typeof store.usuarioDirecaoPodeLancarFrequencia === 'function') {
+    return store.usuarioDirecaoPodeLancarFrequencia(usuario.id);
+  }
+  return true;
 }
 
 async function usuarioTemAcessoTurmaFrequencia(usuario, turmaId, horario, data) {
@@ -290,7 +294,7 @@ app.use(
   cookieSession({
     name: 'presenca_session',
     keys: [process.env.SESSION_SECRET || 'presenca-dev-secret'],
-    maxAge: 3 * 60 * 1000,
+    maxAge: 5 * 60 * 1000,
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
@@ -394,7 +398,14 @@ app.use(async (req, res, next) => {
   if (req.session.usuario?.perfil === 'direcao') {
     try {
       const configuracaoDirecao = await getConfiguracaoDirecaoLancarFrequenciaSafe();
-      res.locals.direcaoPodeLancarFrequencia = Boolean(configuracaoDirecao?.ativo);
+      const liberado = Boolean(configuracaoDirecao?.ativo);
+      if (!liberado) {
+        res.locals.direcaoPodeLancarFrequencia = false;
+      } else if (typeof store.usuarioDirecaoPodeLancarFrequencia === 'function') {
+        res.locals.direcaoPodeLancarFrequencia = await store.usuarioDirecaoPodeLancarFrequencia(req.session.usuario.id);
+      } else {
+        res.locals.direcaoPodeLancarFrequencia = true;
+      }
     } catch (_) {
       res.locals.direcaoPodeLancarFrequencia = false;
     }
@@ -685,6 +696,8 @@ app.get('/', requireAuth, async (req, res) => {
     pendenciasPainelBase,
     solicitacoesLancamentoForaHorarioPendentes,
     solicitacoesEdicaoFrequenciaPendentes,
+    usuariosBase,
+    direcaoUsuariosPermitidos,
   ] = await Promise.all([
     store.getDashboardStats(req.session.usuario.id, req.session.usuario.perfil),
     req.session.usuario.perfil === 'admin'
@@ -705,7 +718,17 @@ app.get('/', requireAuth, async (req, res) => {
       && typeof store.listSolicitacoesEdicaoFrequenciaPendentes === 'function'
       ? store.listSolicitacoesEdicaoFrequenciaPendentes()
       : Promise.resolve([]),
+    req.session.usuario.perfil === 'admin' && typeof store.getUsuarios === 'function'
+      ? store.getUsuarios()
+      : Promise.resolve([]),
+    req.session.usuario.perfil === 'admin' && typeof store.getDirecaoLancamentoUsuariosPermitidos === 'function'
+      ? store.getDirecaoLancamentoUsuariosPermitidos()
+      : Promise.resolve([]),
   ]);
+  const direcaoUsuarios = (usuariosBase || []).filter((u) => u && u.perfil === 'direcao' && Number(u.ativo) === 1);
+  const direcaoUsuariosPermitidosSet = new Set(
+    (direcaoUsuariosPermitidos || []).map((v) => Number(v)).filter((n) => Number.isFinite(n) && n > 0)
+  );
   const turmas = await store.getTurmas(req.session.usuario.perfil === 'professor' ? req.session.usuario.id : null);
   const pendenciasPainel = (pendenciasPainelBase || []).filter((item) => item.status === 'pendente');
   res.render('dashboard', {
@@ -718,6 +741,9 @@ app.get('/', requireAuth, async (req, res) => {
     pendenciasPainel,
     solicitacoesLancamentoForaHorarioPendentes,
     solicitacoesEdicaoFrequenciaPendentes,
+    direcaoUsuarios,
+    direcaoUsuariosPermitidosSet,
+    direcaoUsuariosPermitidosCount: (direcaoUsuariosPermitidos || []).length,
     sucesso: req.query.sucesso || null,
     erro: req.query.erro || null,
   });
@@ -752,6 +778,30 @@ app.post('/admin/configuracoes/direcao-lancar-frequencia', requireAuth, requireP
     res.redirect(`/?sucesso=${encodeURIComponent(mensagem)}`);
   } catch (err) {
     res.redirect(`/?erro=${encodeURIComponent(err.message || 'Erro ao atualizar a permissão da direção para lançar frequência.')}`);
+  }
+});
+
+app.post('/admin/configuracoes/direcao-lancar-frequencia/usuarios', requireAuth, requirePerfil('admin'), async (req, res) => {
+  try {
+    if (typeof store.setDirecaoLancamentoUsuariosPermitidos !== 'function') {
+      throw new Error('Esta configuração não está disponível neste modo do sistema.');
+    }
+
+    const limpar = String(req.body.limpar || '').trim() === '1';
+    const raw = req.body.usuario_ids;
+    const values = limpar
+      ? []
+      : Array.isArray(raw)
+        ? raw
+        : (typeof raw === 'string' && raw.trim())
+          ? [raw]
+          : [];
+    const ids = values.map((v) => Number(String(v).trim())).filter((n) => Number.isFinite(n) && n > 0);
+
+    await store.setDirecaoLancamentoUsuariosPermitidos(ids);
+    res.redirect(`/?sucesso=${encodeURIComponent('Lista de membros da direção autorizados a lançar frequência atualizada com sucesso.')}`);
+  } catch (err) {
+    res.redirect(`/?erro=${encodeURIComponent(err.message || 'Erro ao atualizar a lista de membros da direção autorizados.')}`);
   }
 });
 
@@ -859,6 +909,151 @@ app.get('/relatorios/frequencia/exportar', requireAuth, requirePerfil('admin', '
 
   await workbook.xlsx.write(res);
   res.end();
+});
+
+app.get('/relatorios/individual', requireAuth, requirePerfil('admin', 'coordenacao', 'direcao'), async (req, res) => {
+  const busca = String(req.query.busca || '').trim();
+  const alunoId = req.query.aluno_id ? Number(req.query.aluno_id) : null;
+  const hoje = new Date();
+  const inicioMes = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-01`;
+  const fimMes = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(
+    new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate()
+  ).padStart(2, '0')}`;
+  const dataInicioRaw = String(req.query.data_inicio || inicioMes).trim();
+  const dataFimRaw = String(req.query.data_fim || fimMes).trim();
+
+  const isValidYmd = (value) => {
+    const v = String(value || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+    const [y, m, d] = v.split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    if (Number.isNaN(dt.getTime())) return false;
+    return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d;
+  };
+  const compareYmd = (a, b) => String(a).localeCompare(String(b));
+
+  const dataInicio = isValidYmd(dataInicioRaw) ? dataInicioRaw : inicioMes;
+  const dataFim = isValidYmd(dataFimRaw) ? dataFimRaw : fimMes;
+  const erroValidacaoPeriodo =
+    !isValidYmd(dataInicioRaw) || !isValidYmd(dataFimRaw)
+      ? 'Informe um período válido (data inicial e data final).'
+      : compareYmd(dataFim, dataInicio) < 0
+        ? 'A data final não pode ser menor que a data inicial.'
+        : null;
+
+  const alunosEncontrados = busca ? await store.getAlunos({ ativo: 1, busca }) : [];
+  const alunoSelecionado = alunoId ? await store.getAluno(alunoId) : null;
+
+  let historico = [];
+  let resumoPeriodo = { presencas: 0, faltas: 0, justificadas: 0, total: 0 };
+  if (alunoSelecionado && !erroValidacaoPeriodo) {
+    if (typeof store.getHistoricoIndividualPorPeriodo !== 'function') {
+      throw new Error('Este relatório não está disponível neste modo do sistema.');
+    }
+    historico = await store.getHistoricoIndividualPorPeriodo(alunoSelecionado.id, dataInicio, dataFim);
+    resumoPeriodo = historico.reduce(
+      (acc, item) => {
+        acc.total += 1;
+        if (item.status === 'P') acc.presencas += 1;
+        if (item.status === 'F') acc.faltas += 1;
+        if (item.status === 'J') acc.justificadas += 1;
+        return acc;
+      },
+      { presencas: 0, faltas: 0, justificadas: 0, total: 0 }
+    );
+  }
+
+  res.render('relatorios/individual', {
+    titulo: 'Relatório Individual',
+    busca,
+    alunosEncontrados,
+    alunoSelecionado,
+    historico,
+    resumoPeriodo,
+    filtros: { dataInicio, dataFim },
+    sucesso: req.query.sucesso || null,
+    erro: erroValidacaoPeriodo || req.query.erro || null,
+  });
+});
+
+app.get('/relatorios/individual/exportar', requireAuth, requirePerfil('admin', 'coordenacao', 'direcao'), async (req, res) => {
+  try {
+    const alunoId = Number(req.query.aluno_id);
+    const dataInicio = String(req.query.data_inicio || '').trim();
+    const dataFim = String(req.query.data_fim || '').trim();
+    if (!Number.isFinite(alunoId) || alunoId <= 0) throw new Error('Aluno inválido.');
+    if (!dataInicio) throw new Error('Data inicial inválida.');
+    if (!dataFim) throw new Error('Data final inválida.');
+    if (String(dataFim).localeCompare(String(dataInicio)) < 0) throw new Error('A data final não pode ser menor que a data inicial.');
+
+    if (typeof store.getHistoricoIndividualPorPeriodo !== 'function') {
+      throw new Error('Este relatório não está disponível neste modo do sistema.');
+    }
+
+    const aluno = await store.getAluno(alunoId);
+    if (!aluno) throw new Error('Aluno não encontrado.');
+    const historico = await store.getHistoricoIndividualPorPeriodo(alunoId, dataInicio, dataFim);
+
+    const resumoPeriodo = historico.reduce(
+      (acc, item) => {
+        acc.total += 1;
+        if (item.status === 'P') acc.presencas += 1;
+        if (item.status === 'F') acc.faltas += 1;
+        if (item.status === 'J') acc.justificadas += 1;
+        return acc;
+      },
+      { presencas: 0, faltas: 0, justificadas: 0, total: 0 }
+    );
+
+    const workbook = new ExcelJS.Workbook();
+    const resumoSheet = workbook.addWorksheet('Resumo');
+    resumoSheet.columns = [
+      { header: 'Aluno', key: 'aluno', width: 40 },
+      { header: 'Data início', key: 'data_inicio', width: 14 },
+      { header: 'Data fim', key: 'data_fim', width: 14 },
+      { header: 'Presenças', key: 'presencas', width: 12 },
+      { header: 'Faltas', key: 'faltas', width: 12 },
+      { header: 'Justificadas', key: 'justificadas', width: 14 },
+      { header: 'Total', key: 'total', width: 10 },
+    ];
+    resumoSheet.addRow({
+      aluno: aluno.nome,
+      data_inicio: dataInicio,
+      data_fim: dataFim,
+      presencas: resumoPeriodo.presencas,
+      faltas: resumoPeriodo.faltas,
+      justificadas: resumoPeriodo.justificadas,
+      total: resumoPeriodo.total,
+    });
+
+    const histSheet = workbook.addWorksheet('Histórico');
+    histSheet.columns = [
+      { header: 'Data', key: 'data', width: 14 },
+      { header: 'Horário', key: 'horario', width: 10 },
+      { header: 'Status', key: 'status', width: 14 },
+      { header: 'Observação', key: 'observacao', width: 40 },
+    ];
+
+    const statusLabel = (s) => (s === 'P' ? 'Presente' : s === 'F' ? 'Falta' : 'Justificada');
+    historico.forEach((h) => {
+      histSheet.addRow({
+        data: res.locals.formatarData(h.data),
+        horario: `${h.horario}º`,
+        status: statusLabel(h.status),
+        observacao: h.observacao || '',
+      });
+    });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=relatorio_individual_${String(aluno.nome).replace(/[^\w\-]+/g, '_')}_${dataInicio}_${dataFim}.xlsx`
+    );
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    res.redirect(`/relatorios/individual?erro=${encodeURIComponent(err.message || 'Erro ao exportar relatório individual.')}`);
+  }
 });
 
 // --- Alunos ---

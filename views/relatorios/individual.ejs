@@ -1,0 +1,135 @@
+<%- include('../partials/shell-start') %>
+
+<% if (typeof sucesso !== 'undefined' && sucesso) { %><div class="alert alert-success"><%= sucesso %></div><% } %>
+<% if (typeof erro !== 'undefined' && erro) { %><div class="alert alert-error"><%= erro %></div><% } %>
+
+<div class="card">
+  <div class="card-header">
+    <h3>Relatório Individual de Presenças e Faltas</h3>
+  </div>
+  <div class="card-body">
+    <form method="get" action="/relatorios/individual" class="freq-toolbar" style="margin-bottom: 1rem;">
+      <div class="form-group" style="flex:1">
+        <label for="busca">Pesquisar aluno</label>
+        <input type="text" id="busca" name="busca" value="<%= busca %>" placeholder="Digite o nome ou código do aluno..." />
+      </div>
+      <div style="display:flex; align-items:flex-end; gap:.5rem">
+        <button type="submit" class="btn btn-primary">Pesquisar</button>
+      </div>
+    </form>
+
+    <% if (busca && (!alunosEncontrados || alunosEncontrados.length === 0)) { %>
+      <div class="alert alert-info">Nenhum aluno encontrado para a pesquisa "<%= busca %>".</div>
+    <% } %>
+
+    <% if (alunosEncontrados && alunosEncontrados.length > 0) { %>
+      <div class="table-wrap" style="margin-top: 1rem;">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Nome</th>
+              <th>Turma</th>
+              <th style="text-align:right">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% alunosEncontrados.forEach(function(a) { %>
+              <tr>
+                <td class="codigo-cell" data-label="Código"><%= a.codigo_formatado || a.codigo %></td>
+                <td data-label="Nome"><strong><%= a.nome %></strong></td>
+                <td data-label="Turma"><%= a.turma_nome || '—' %></td>
+                <td data-label="Ações" style="text-align:right">
+                  <a class="btn btn-sm btn-secondary" href="/relatorios/individual?aluno_id=<%= a.id %>&data_inicio=<%= filtros.dataInicio %>&data_fim=<%= filtros.dataFim %>">
+                    Abrir relatório
+                  </a>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+
+    <% if (alunoSelecionado) { %>
+      <div class="card" style="margin-top: 1.5rem;">
+        <div class="card-header">
+          <h3>Aluno: <%= alunoSelecionado.nome %></h3>
+          <div style="display:flex; gap:0.5rem">
+            <a class="btn btn-sm btn-secondary no-print" href="/relatorios/individual/exportar?aluno_id=<%= alunoSelecionado.id %>&data_inicio=<%= filtros.dataInicio %>&data_fim=<%= filtros.dataFim %>">Excel</a>
+            <button onclick="window.print()" class="btn btn-sm btn-outline no-print">PDF</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <form method="get" action="/relatorios/individual" class="freq-toolbar no-print" style="margin-bottom: 1rem;">
+            <input type="hidden" name="aluno_id" value="<%= alunoSelecionado.id %>" />
+            <div class="form-group">
+              <label>Data início</label>
+              <input type="date" name="data_inicio" value="<%= filtros.dataInicio %>" onchange="this.form.submit()">
+            </div>
+            <div class="form-group">
+              <label>Data fim</label>
+              <input type="date" name="data_fim" value="<%= filtros.dataFim %>" onchange="this.form.submit()">
+            </div>
+          </form>
+
+          <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 1.25rem;">
+            <div class="stat-card">
+              <div class="label">Presenças</div>
+              <div class="value" style="color: var(--success)"><%= resumoPeriodo.presencas %></div>
+            </div>
+            <div class="stat-card">
+              <div class="label">Faltas</div>
+              <div class="value" style="color: var(--danger)"><%= resumoPeriodo.faltas %></div>
+            </div>
+            <div class="stat-card">
+              <div class="label">Justificadas</div>
+              <div class="value" style="color: var(--warning)"><%= resumoPeriodo.justificadas %></div>
+            </div>
+            <div class="stat-card">
+              <div class="label">Total</div>
+              <div class="value"><%= resumoPeriodo.total %></div>
+            </div>
+          </div>
+
+          <% if (!historico || historico.length === 0) { %>
+            <div class="alert alert-info">Nenhum registro de frequência para este período.</div>
+          <% } else { %>
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Horário</th>
+                    <th>Status</th>
+                    <th>Observação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% historico.forEach(function(h) { %>
+                    <tr>
+                      <td data-label="Data"><strong><%= formatarData(h.data) %></strong></td>
+                      <td data-label="Horário"><span class="badge badge-info"><%= h.horario %>º Horário</span></td>
+                      <td data-label="Status">
+                        <% if (h.status === 'P') { %>
+                          <span class="badge badge-success">Presente</span>
+                        <% } else if (h.status === 'F') { %>
+                          <span class="badge badge-danger">Falta</span>
+                        <% } else { %>
+                          <span class="badge badge-warning">Justificada</span>
+                        <% } %>
+                      </td>
+                      <td data-label="Observação"><%= h.observacao || '—' %></td>
+                    </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<%- include('../partials/shell-end') %>

@@ -167,6 +167,18 @@ CREATE TABLE configuracoes_sistema (
 ) ENGINE=InnoDB COMMENT='Configurações gerais do sistema';
 
 -- -----------------------------------------------------------------------------
+-- Tabela: direcao_lancar_frequencia_usuarios
+-- Lista (whitelist) de usuários da direção autorizados a lançar frequência
+-- Se estiver vazia, considera que todos os usuários ativos da direção estão autorizados
+-- -----------------------------------------------------------------------------
+CREATE TABLE direcao_lancar_frequencia_usuarios (
+    usuario_id          INT UNSIGNED NOT NULL PRIMARY KEY,
+    criado_em           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_dlfu_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB COMMENT='Whitelist de direção autorizada a lançar frequência';
+
+-- -----------------------------------------------------------------------------
 -- Tabela: turma_ordem_manual_definitiva
 -- Permite fixar manualmente a ordem final de alunos em turmas definitivas
 -- -----------------------------------------------------------------------------
