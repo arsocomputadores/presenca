@@ -470,11 +470,21 @@ body {
 
 .report-filter-submit {
   min-width: 140px;
+  display: flex;
+  align-items: flex-end;
 }
 
 .report-filter-submit .btn {
   width: 100%;
   min-height: 46px;
+}
+
+.dashboard-pendencias-wrap,
+.report-table-wrap {
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
 }
 
 .filter-bar {
@@ -925,11 +935,12 @@ textarea::placeholder {
   
   .sidebar nav a {
     white-space: nowrap !important;
-    padding: 0.5rem 0.8rem !important;
-    font-size: 0.75rem !important;
+    padding: 0.7rem 0.95rem !important;
+    font-size: 0.92rem !important;
     margin-bottom: 0 !important;
     flex-shrink: 0 !important;
     background: rgba(255,255,255,0.05);
+    border-radius: 18px !important;
   }
 
   .sidebar nav a.nav-logout {
@@ -941,7 +952,11 @@ textarea::placeholder {
   }
 
   .topbar { display: none !important; }
-  .page-content { padding: 0.75rem !important; padding-bottom: 120px !important; }
+  .page-content {
+    padding: 0.85rem !important;
+    padding-bottom: 120px !important;
+    overflow-x: hidden !important;
+  }
   .card-header {
     padding: 1rem !important;
     flex-wrap: wrap !important;
@@ -953,6 +968,10 @@ textarea::placeholder {
     width: 100%;
   }
   .card-body { padding: 1rem !important; }
+  .card {
+    border-radius: 18px !important;
+    margin-bottom: 1rem !important;
+  }
 
   .stats-grid { grid-template-columns: 1fr !important; gap: 0.75rem !important; }
   .turmas-grid { grid-template-columns: 1fr !important; }
@@ -1096,13 +1115,27 @@ textarea::placeholder {
     width: 100% !important;
   }
 
+  .report-filter-form {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 0.85rem !important;
+    align-items: stretch !important;
+  }
+
   .report-filter-fields {
     grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
   }
 
   .report-filter-submit {
     width: 100% !important;
     min-width: 0 !important;
+    display: block !important;
+  }
+
+  .report-filter-submit .btn {
+    width: 100% !important;
+    min-height: 48px !important;
   }
 
   .pagination-toolbar {
@@ -1155,11 +1188,15 @@ textarea::placeholder {
 
   .report-toolbar {
     margin-bottom: 1rem !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.85rem !important;
   }
 
   .report-toolbar-actions {
     flex-direction: column !important;
     align-items: stretch !important;
+    width: 100% !important;
   }
 
   .mobile-inline-form {
@@ -1211,10 +1248,62 @@ textarea::placeholder {
     justify-content: stretch !important;
   }
 
-  /* Tabelas Adaptáveis em Outras Telas */
-  tr { margin-bottom: 1rem !important; border: 1px solid var(--border) !important; border-radius: var(--radius-md) !important; background: white !important; padding: 0.75rem !important; }
-  td { display: flex !important; justify-content: space-between !important; padding: 0.5rem 0 !important; border: none !important; font-size: 0.9rem !important; }
-  td::before { content: attr(data-label) !important; font-weight: 700 !important; color: var(--text-muted) !important; }
+  .table-wrap {
+    margin: 0 !important;
+    overflow-x: hidden !important;
+  }
+
+  .table-mobile-cards thead {
+    display: none !important;
+  }
+
+  .table-mobile-cards,
+  .table-mobile-cards tbody,
+  .table-mobile-cards tr,
+  .table-mobile-cards td {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .table-mobile-cards tr {
+    margin-bottom: 0.85rem !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-md) !important;
+    background: white !important;
+    padding: 0.85rem !important;
+  }
+
+  .table-mobile-cards td {
+    display: grid !important;
+    grid-template-columns: minmax(110px, 38%) minmax(0, 1fr) !important;
+    gap: 0.6rem !important;
+    align-items: start !important;
+    padding: 0.45rem 0 !important;
+    border: none !important;
+    font-size: 0.95rem !important;
+    text-align: left !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+
+  .table-mobile-cards td::before {
+    content: attr(data-label) !important;
+    font-weight: 700 !important;
+    color: var(--text-muted) !important;
+    min-width: 0 !important;
+  }
+
+  .dashboard-pendencias-wrap .table-mobile-cards td,
+  .report-table-wrap .table-mobile-cards td {
+    grid-template-columns: minmax(115px, 40%) minmax(0, 1fr) !important;
+  }
+
+  .dashboard-pendencias-wrap .badge,
+  .report-table-wrap .badge {
+    width: fit-content !important;
+    max-width: 100% !important;
+  }
 
   .login-card {
     padding: 1.25rem;

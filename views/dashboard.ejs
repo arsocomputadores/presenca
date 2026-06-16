@@ -89,6 +89,22 @@
   </div>
 <% } %>
 
+<% if (usuario.perfil === 'admin') { %>
+  <div class="card" style="margin-top:1.5rem">
+    <div class="card-header">
+      <h3>Liberação Após o Horário</h3>
+    </div>
+    <div class="card-body">
+      <div class="text-muted">
+        Para liberar um professor a lançar após o horário, abra <strong>Frequência</strong>, selecione a
+        <strong>turma</strong>, a <strong>data</strong> e o <strong>horário</strong>. Quando houver solicitação do professor,
+        aparecerá a seção <strong>Liberações de Lançamento Fora do Horário</strong> com o botão
+        <strong>Liberar lançamento fora do horário</strong>.
+      </div>
+    </div>
+  </div>
+<% } %>
+
 <% if (usuario.perfil === 'admin' || usuario.perfil === 'direcao') { %>
   <div class="card" style="margin-top:1.5rem">
     <div class="card-header">
@@ -105,8 +121,8 @@
           <span class="badge badge-danger"><%= pendenciasPainel.length %></span>
           pendência(s) de lançamento em <strong><%= formatarData(dataReferenciaPainel) %></strong>.
         </div>
-        <div class="table-wrap">
-          <table>
+        <div class="table-wrap dashboard-pendencias-wrap">
+          <table class="table table-mobile-cards">
             <thead>
               <tr>
                 <th>Turma</th>

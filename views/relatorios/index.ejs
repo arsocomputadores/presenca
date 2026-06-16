@@ -74,8 +74,8 @@
         Nenhum lançamento de frequência encontrado para o dia <%= formatarData(data) %>.
       </div>
     <% } else { %>
-      <div class="table-wrap" style="margin-top: 1.5rem;">
-        <table class="table">
+        <div class="table-wrap report-table-wrap" style="margin-top: 1.5rem;">
+        <table class="table table-mobile-cards">
           <thead>
             <tr>
               <th>Turma</th>
@@ -117,8 +117,8 @@
             Não há pendências registradas para <%= formatarData(data) %><%= Number(horarioFiltro) === 1 || Number(horarioFiltro) === 6 ? ' no ' + horarioFiltro + 'º horário' : '' %>.
           </div>
         <% } else { %>
-          <div class="table-wrap">
-            <table class="table">
+          <div class="table-wrap report-table-wrap">
+            <table class="table table-mobile-cards">
               <thead>
                 <tr>
                   <th>Turma</th>
