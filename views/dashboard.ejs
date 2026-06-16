@@ -29,6 +29,32 @@
   </div>
 
   <% if (usuario.perfil === 'admin') { %>
+    <div class="dashboard-summary-grid">
+      <div class="card dashboard-summary-card">
+        <div class="card-body">
+          <div class="label">Pendências de lançamento</div>
+          <div class="value" style="color: var(--danger)"><%= (pendenciasPainel || []).length %></div>
+          <div class="subvalue">Turmas/horários do dia sem frequência lançada</div>
+        </div>
+      </div>
+      <div class="card dashboard-summary-card">
+        <div class="card-body">
+          <div class="label">Pedidos após o horário</div>
+          <div class="value"><%= (solicitacoesLancamentoForaHorarioPendentes || []).length %></div>
+          <div class="subvalue">Solicitações aguardando decisão</div>
+        </div>
+      </div>
+      <div class="card dashboard-summary-card">
+        <div class="card-body">
+          <div class="label">Pedidos de alteração</div>
+          <div class="value"><%= (solicitacoesEdicaoFrequenciaPendentes || []).length %></div>
+          <div class="subvalue">Alterações de frequência pendentes</div>
+        </div>
+      </div>
+    </div>
+  <% } %>
+
+  <% if (usuario.perfil === 'admin') { %>
     <div class="dashboard-grid dashboard-grid-admin">
       <div class="dashboard-main">
         <% if (usuario.perfil === 'admin' || usuario.perfil === 'direcao') { %>

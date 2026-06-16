@@ -307,6 +307,20 @@ body {
   align-items: start;
 }
 
+.dashboard-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.dashboard-summary-card {
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+.dashboard-summary-card .card-body {
+  padding: 1.1rem 1.25rem;
+}
+
 .dashboard-main,
 .dashboard-aside {
   display: flex;

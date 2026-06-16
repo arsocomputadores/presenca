@@ -925,12 +925,10 @@ app.get('/relatorios/individual', requireAuth, requirePerfil('admin', 'coordenac
   const busca = String(req.query.busca || '').trim();
   const alunoId = req.query.aluno_id ? Number(req.query.aluno_id) : null;
   const hoje = new Date();
-  const inicioMes = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-01`;
-  const fimMes = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(
-    new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate()
-  ).padStart(2, '0')}`;
-  const dataInicioRaw = String(req.query.data_inicio || inicioMes).trim();
-  const dataFimRaw = String(req.query.data_fim || fimMes).trim();
+  const inicioAnoLetivo = `${hoje.getFullYear()}-01-01`;
+  const hojeYmd = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+  const dataInicioRaw = String(req.query.data_inicio || inicioAnoLetivo).trim();
+  const dataFimRaw = String(req.query.data_fim || hojeYmd).trim();
 
   const isValidYmd = (value) => {
     const v = String(value || '').trim();
@@ -942,8 +940,8 @@ app.get('/relatorios/individual', requireAuth, requirePerfil('admin', 'coordenac
   };
   const compareYmd = (a, b) => String(a).localeCompare(String(b));
 
-  const dataInicio = isValidYmd(dataInicioRaw) ? dataInicioRaw : inicioMes;
-  const dataFim = isValidYmd(dataFimRaw) ? dataFimRaw : fimMes;
+  const dataInicio = isValidYmd(dataInicioRaw) ? dataInicioRaw : inicioAnoLetivo;
+  const dataFim = isValidYmd(dataFimRaw) ? dataFimRaw : hojeYmd;
   const erroValidacaoPeriodo =
     !isValidYmd(dataInicioRaw) || !isValidYmd(dataFimRaw)
       ? 'Informe um período válido (data inicial e data final).'
@@ -1048,7 +1046,9 @@ app.get('/relatorios/individual/exportar', requireAuth, requirePerfil('admin', '
     histSheet.columns = [
       { header: 'Data', key: 'data', width: 14 },
       { header: 'Horário', key: 'horario', width: 10 },
+      { header: 'Turma', key: 'turma_nome', width: 20 },
       { header: 'Status', key: 'status', width: 14 },
+      { header: 'Lançado por', key: 'lancado_por_nome', width: 24 },
       { header: 'Observação', key: 'observacao', width: 40 },
     ];
 
@@ -1062,7 +1062,9 @@ app.get('/relatorios/individual/exportar', requireAuth, requirePerfil('admin', '
       histSheet.addRow({
         data: res.locals.formatarData(h.data),
         horario: `${h.horario}º`,
+        turma_nome: h.turma_nome || '',
         status: statusLabel(h.status),
+        lancado_por_nome: h.lancado_por_nome || '',
         observacao: h.observacao || '',
       });
     });
@@ -1634,14 +1636,14 @@ app.post('/frequencia', requireAuth, async (req, res) => {
         justificativaAlteracao,
         solicitacaoEdicao?.id || null
       );
-      return res.redirect(`/frequencia?turma_id=${tId}&data=${data}&horario=${hId}&sucesso=${encodeURIComponent('Frequência atualizada com sucesso.')}`);
+      return res.redirect(`/frequencia?turma_id=${tId}&data=${data}&horario=${hId}&sucesso=${encodeURIComponent(`Frequência da turma ${turma?.nome || ''} atualizada com sucesso para o ${hId}º horário.`)}`);
     }
 
     await store.salvarFrequencia(tId, data, parsed, req.session.usuario.id, hId);
     if (lancamentoForaHorarioLiberado?.id && typeof store.marcarSolicitacaoLancamentoForaHorarioAtendida === 'function') {
       await store.marcarSolicitacaoLancamentoForaHorarioAtendida(lancamentoForaHorarioLiberado.id);
     }
-    res.redirect(`/frequencia?turma_id=${tId}&data=${data}&horario=${hId}&sucesso=${encodeURIComponent('Frequência salva com sucesso!')}`);
+    res.redirect(`/frequencia?turma_id=${tId}&data=${data}&horario=${hId}&sucesso=${encodeURIComponent(`Frequência da turma ${turma?.nome || ''} salva com sucesso para o ${hId}º horário.`)}`);
   } catch (err) {
     res.redirect(`/frequencia?turma_id=${tId}&data=${data}&horario=${hId}&erro=${encodeURIComponent(err.message || 'Não foi possível salvar a frequência.')}`);
   }
@@ -2178,6 +2180,8 @@ app.get('/relatorios/exportar/excel', requireAuth, requirePerfil('admin', 'coord
   const pendencias = horarioFiltro
     ? pendenciasBase.filter((item) => Number(item.horario) === Number(horarioFiltro))
     : pendenciasBase;
+  const pendenciasNaoLancadas = pendencias.filter((item) => item.status === 'pendente');
+  const pendenciasSemResponsavel = pendencias.filter((item) => item.status === 'sem_responsavel');
   
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('Lançamentos');
@@ -2200,28 +2204,39 @@ app.get('/relatorios/exportar/excel', requireAuth, requirePerfil('admin', 'coord
     });
   });
 
-  const pendenciasSheet = workbook.addWorksheet('Pendências');
-  pendenciasSheet.columns = [
+  const naoLancadasSheet = workbook.addWorksheet('Nao Lancaram');
+  naoLancadasSheet.columns = [
     { header: 'Turma', key: 'turma_nome', width: 22 },
     { header: 'Turno', key: 'turno', width: 15 },
     { header: 'Horário', key: 'horario', width: 12 },
     { header: 'Professor Responsável', key: 'professor_nome', width: 28 },
-    { header: 'Status', key: 'status', width: 18 },
-    { header: 'Lançado Por', key: 'lancado_por', width: 24 },
+    { header: 'Situação', key: 'situacao', width: 18 },
   ];
 
-  pendencias.forEach((item) => {
-    pendenciasSheet.addRow({
+  pendenciasNaoLancadas.forEach((item) => {
+    naoLancadasSheet.addRow({
       turma_nome: item.turma_nome,
       turno: res.locals.formatarTurno(item.turno),
       horario: `${item.horario}º`,
       professor_nome: item.professor_nome || 'Sem professor definido',
-      status: item.status === 'pendente'
-        ? 'Pendente'
-        : item.status === 'lancado'
-          ? 'Lançado'
-          : 'Sem responsável',
-      lancado_por: item.lancado_por || '—',
+      situacao: 'Não lançou',
+    });
+  });
+
+  const semResponsavelSheet = workbook.addWorksheet('Sem Responsavel');
+  semResponsavelSheet.columns = [
+    { header: 'Turma', key: 'turma_nome', width: 22 },
+    { header: 'Turno', key: 'turno', width: 15 },
+    { header: 'Horário', key: 'horario', width: 12 },
+    { header: 'Situação', key: 'situacao', width: 18 },
+  ];
+
+  pendenciasSemResponsavel.forEach((item) => {
+    semResponsavelSheet.addRow({
+      turma_nome: item.turma_nome,
+      turno: res.locals.formatarTurno(item.turno),
+      horario: `${item.horario}º`,
+      situacao: 'Sem professor definido',
     });
   });
 

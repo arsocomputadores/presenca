@@ -73,6 +73,11 @@
             </div>
           </form>
 
+          <div class="alert alert-info" style="margin-bottom:1rem">
+            Período consultado: <strong><%= formatarData(filtros.dataInicio) %></strong> até
+            <strong><%= formatarData(filtros.dataFim) %></strong>.
+          </div>
+
           <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 1.25rem;">
             <div class="stat-card">
               <div class="label">Presenças</div>

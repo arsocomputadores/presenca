@@ -22,6 +22,9 @@
         pendenciasNaoLancadasPorTurno?.vespertino,
         pendenciasNaoLancadasPorTurno?.outros,
       ].filter(Boolean);
+      const destaquesNaoLancaram = (pendenciasNaoLancadas || [])
+        .filter((item) => item.status === 'pendente')
+        .slice(0, 8);
     %>
     <div class="report-toolbar">
       <form method="get" action="/relatorios" class="report-filter-form">
@@ -81,6 +84,14 @@
           Todos os lançamentos previstos para <%= formatarData(data) %> foram realizados.
         </div>
       <% } else { %>
+        <% if (destaquesNaoLancaram.length > 0) { %>
+          <div class="alert alert-warning" style="margin-bottom:1rem">
+            <strong>Professores/turmas em destaque:</strong>
+            <% destaquesNaoLancaram.forEach(function(item, index) { %>
+              <%= index > 0 ? ' | ' : ' ' %><strong><%= item.professor_nome %></strong> - <%= item.turma_nome %> (<%= item.horario %>º)
+            <% }) %>
+          </div>
+        <% } %>
         <% pendenciaSections.forEach(function(section) { %>
           <% if (section.items.length === 0) return; %>
           <div class="report-turno-block">
