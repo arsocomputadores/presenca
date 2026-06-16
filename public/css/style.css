@@ -286,6 +286,79 @@ body {
   padding: 1.5rem;
 }
 
+.dashboard-config-body {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+
+.quick-actions .btn {
+  min-height: 46px;
+}
+
+.request-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.request-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.request-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1rem 0.85rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.request-card-title {
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 0.35rem;
+}
+
+.request-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+
+.request-card-body {
+  padding: 1rem;
+}
+
+.request-card-reason {
+  line-height: 1.5;
+  margin-bottom: 0.9rem;
+}
+
+.request-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.request-card-actions form {
+  margin: 0;
+}
+
 .project-students-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -798,6 +871,11 @@ textarea::placeholder {
   transform: translateY(-1px);
 }
 
+.student-code {
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
 .freq-buttons-grid { display: flex; gap: 0.25rem; }
 .freq-btn {
   padding: 0.4rem 0.8rem;
@@ -924,8 +1002,8 @@ textarea::placeholder {
   .sidebar nav {
     display: flex !important;
     overflow-x: auto !important;
-    padding: 0.4rem !important;
-    gap: 0.4rem !important;
+    padding: 0.55rem !important;
+    gap: 0.5rem !important;
     background: rgba(0,0,0,0.2) !important;
     -webkit-overflow-scrolling: touch !important;
     scrollbar-width: none !important;
@@ -935,8 +1013,9 @@ textarea::placeholder {
   
   .sidebar nav a {
     white-space: nowrap !important;
-    padding: 0.7rem 0.95rem !important;
-    font-size: 0.92rem !important;
+    padding: 0.72rem 1rem !important;
+    font-size: 0.9rem !important;
+    line-height: 1.15 !important;
     margin-bottom: 0 !important;
     flex-shrink: 0 !important;
     background: rgba(255,255,255,0.05);
@@ -974,11 +1053,56 @@ textarea::placeholder {
   }
 
   .stats-grid { grid-template-columns: 1fr !important; gap: 0.75rem !important; }
+  .stats-grid {
+    margin-bottom: 1rem !important;
+  }
+  .stat-card {
+    padding: 1.1rem !important;
+  }
+  .stat-card .value {
+    font-size: 1.9rem !important;
+    line-height: 1.05 !important;
+  }
+  .stat-card .label,
+  .stat-card .subvalue {
+    line-height: 1.35 !important;
+  }
   .turmas-grid { grid-template-columns: 1fr !important; }
   .project-students-grid { grid-template-columns: 1fr !important; gap: 1rem !important; }
   .aluno-check-list { min-height: 420px !important; }
   .freq-page-card { height: auto !important; }
   .freq-table-wrap { border: none !important; max-height: none !important; }
+
+  .dashboard-config-body,
+  .quick-actions,
+  .request-card-actions {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .dashboard-config-body > form,
+  .dashboard-config-body > form .btn,
+  .quick-actions .btn,
+  .request-card-actions .btn,
+  .request-card-actions form,
+  .request-card-actions form .btn {
+    width: 100% !important;
+  }
+
+  .request-card-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .request-card-meta {
+    flex-direction: column !important;
+    gap: 0.35rem !important;
+  }
+
+  .alert {
+    line-height: 1.45 !important;
+    border-radius: 14px !important;
+  }
 
   /* Ajustes de Título e Botões no Mobile */
   .section-header h3 { font-size: 1.1rem !important; }
@@ -990,17 +1114,22 @@ textarea::placeholder {
     right: 0 !important;
     background: white !important;
     padding: 0.75rem !important;
-    display: flex !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 0.5rem !important;
     box-shadow: 0 -5px 20px rgba(0,0,0,0.15) !important;
     z-index: 1000 !important;
   }
 
   .mobile-action-bar .btn { 
-    flex: 1 !important; 
     height: 52px !important; 
     font-size: 0.9rem !important;
     min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .mobile-action-bar .btn:last-child {
+    grid-column: 1 / -1 !important;
   }
 
   .freq-actions-bar {
@@ -1040,6 +1169,10 @@ textarea::placeholder {
     padding-bottom: 0.35rem !important;
   }
 
+  .freq-sticky-header .alert {
+    margin-bottom: 0.65rem !important;
+  }
+
   /* Cards de Frequência Mobile */
   .student-freq-card {
     display: block !important;
@@ -1051,6 +1184,10 @@ textarea::placeholder {
   }
 
   .student-info { border-bottom: 1px solid var(--border) !important; margin-bottom: 1rem !important; padding-bottom: 0.5rem !important; }
+  .student-code {
+    font-size: 0.82rem !important;
+    letter-spacing: 0.02em !important;
+  }
   .student-name {
     font-size: 1.1rem !important;
     color: var(--primary-dark) !important;
@@ -1072,6 +1209,7 @@ textarea::placeholder {
 
   .freq-table td::before {
     margin-bottom: 0.15rem !important;
+    font-size: 0.8rem !important;
   }
 
   .freq-table .student-info,
@@ -1098,6 +1236,7 @@ textarea::placeholder {
     font-size: 1rem !important;
     border: 1.5px solid var(--border) !important;
     border-radius: var(--radius-sm) !important;
+    min-height: 44px !important;
   }
 
   .freq-legend {
@@ -1170,6 +1309,7 @@ textarea::placeholder {
   }
 
   .page-header-actions .btn,
+  .card-header .btn,
   .report-toolbar-actions .btn,
   .report-toolbar-actions form,
   .report-toolbar-actions form .btn,
@@ -1196,6 +1336,10 @@ textarea::placeholder {
   .report-toolbar-actions {
     flex-direction: column !important;
     align-items: stretch !important;
+    width: 100% !important;
+  }
+
+  .report-toolbar-actions > * {
     width: 100% !important;
   }
 
@@ -1271,6 +1415,7 @@ textarea::placeholder {
     border-radius: var(--radius-md) !important;
     background: white !important;
     padding: 0.85rem !important;
+    box-shadow: var(--shadow-sm) !important;
   }
 
   .table-mobile-cards td {

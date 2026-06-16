@@ -649,7 +649,13 @@ app.post('/logout', (req, res) => {
 // --- Dashboard ---
 app.get('/', requireAuth, async (req, res) => {
   const dataReferenciaPainel = getTodayYmdLocal();
-  const [stats, configuracaoAvisoPendencia, configuracaoDirecaoLancamento, pendenciasPainelBase] = await Promise.all([
+  const [
+    stats,
+    configuracaoAvisoPendencia,
+    configuracaoDirecaoLancamento,
+    pendenciasPainelBase,
+    solicitacoesLancamentoForaHorarioPendentes,
+  ] = await Promise.all([
     store.getDashboardStats(req.session.usuario.id, req.session.usuario.perfil),
     req.session.usuario.perfil === 'admin'
       ? getConfiguracaoAvisoPendenciaSafe()
@@ -660,6 +666,10 @@ app.get('/', requireAuth, async (req, res) => {
     (req.session.usuario.perfil === 'admin' || req.session.usuario.perfil === 'direcao')
       && typeof store.relatorioPendenciasLancamentoDia === 'function'
       ? store.relatorioPendenciasLancamentoDia(dataReferenciaPainel)
+      : Promise.resolve([]),
+    req.session.usuario.perfil === 'admin'
+      && typeof store.listSolicitacoesLancamentoForaHorarioPendentes === 'function'
+      ? store.listSolicitacoesLancamentoForaHorarioPendentes()
       : Promise.resolve([]),
   ]);
   const turmas = await store.getTurmas(req.session.usuario.perfil === 'professor' ? req.session.usuario.id : null);
@@ -672,6 +682,7 @@ app.get('/', requireAuth, async (req, res) => {
     configuracaoDirecaoLancamento,
     dataReferenciaPainel,
     pendenciasPainel,
+    solicitacoesLancamentoForaHorarioPendentes,
     sucesso: req.query.sucesso || null,
     erro: req.query.erro || null,
   });
@@ -1448,6 +1459,7 @@ app.post('/frequencia/liberar-lancamento-fora-horario', requireAuth, requirePerf
     }
     const solicitacaoId = Number(req.body.solicitacao_id);
     const solicitacao = await store.liberarLancamentoForaHorario(solicitacaoId, req.session.usuario.id);
+    const origemPainel = String(req.body.origem || '').trim() === 'painel';
 
     if (typeof store.criarMensagemInterna === 'function') {
       await store.criarMensagemInterna({
@@ -1468,12 +1480,63 @@ app.post('/frequencia/liberar-lancamento-fora-horario', requireAuth, requirePerf
       });
     }
 
+    if (origemPainel) {
+      return res.redirect(`/?sucesso=${encodeURIComponent('Pedido de lançamento fora do horário liberado com sucesso.')}`);
+    }
     res.redirect(`/frequencia?turma_id=${solicitacao.turma_id}&data=${solicitacao.data}&horario=${solicitacao.horario}&sucesso=${encodeURIComponent('Lançamento fora do horário liberado para o solicitante.')}`);
   } catch (err) {
+    const origemPainel = String(req.body.origem || '').trim() === 'painel';
+    if (origemPainel) {
+      return res.redirect(`/?erro=${encodeURIComponent(err.message || 'Não foi possível liberar o lançamento fora do horário.')}`);
+    }
     const tId = Number(req.body.turma_id) || '';
     const data = String(req.body.data || '').trim();
     const hId = normalizeHorario(req.body.horario);
     res.redirect(`/frequencia?turma_id=${tId}&data=${data}&horario=${hId}&erro=${encodeURIComponent(err.message || 'Não foi possível liberar o lançamento fora do horário.')}`);
+  }
+});
+
+app.post('/frequencia/negar-lancamento-fora-horario', requireAuth, requirePerfil('admin'), async (req, res) => {
+  try {
+    if (typeof store.negarLancamentoForaHorario !== 'function') {
+      throw new Error('Este recurso não está disponível neste modo do sistema.');
+    }
+    const solicitacaoId = Number(req.body.solicitacao_id);
+    const solicitacao = await store.negarLancamentoForaHorario(solicitacaoId, req.session.usuario.id);
+    const origemPainel = String(req.body.origem || '').trim() === 'painel';
+
+    if (typeof store.criarMensagemInterna === 'function') {
+      await store.criarMensagemInterna({
+        remetente_id: req.session.usuario.id,
+        titulo: `Pedido negado de lançamento fora do horário - ${solicitacao.turma_nome}`,
+        corpo: [
+          'Sua solicitação para lançar frequência fora do horário não foi liberada pelo administrador.',
+          '',
+          `Turma: ${solicitacao.turma_nome}`,
+          `Data: ${solicitacao.data}`,
+          `Horário: ${solicitacao.horario}º`,
+          '',
+          'Se ainda for necessário, entre em contato com a administração.',
+        ].join('\n'),
+        tipo_destino: 'usuarios',
+        perfil_destino: '',
+        usuario_ids: [solicitacao.solicitante_id],
+      });
+    }
+
+    if (origemPainel) {
+      return res.redirect(`/?sucesso=${encodeURIComponent('Pedido de lançamento fora do horário negado com sucesso.')}`);
+    }
+    res.redirect(`/frequencia?turma_id=${solicitacao.turma_id}&data=${solicitacao.data}&horario=${solicitacao.horario}&sucesso=${encodeURIComponent('Pedido de lançamento fora do horário negado.')}`);
+  } catch (err) {
+    const origemPainel = String(req.body.origem || '').trim() === 'painel';
+    if (origemPainel) {
+      return res.redirect(`/?erro=${encodeURIComponent(err.message || 'Não foi possível negar o lançamento fora do horário.')}`);
+    }
+    const tId = Number(req.body.turma_id) || '';
+    const data = String(req.body.data || '').trim();
+    const hId = normalizeHorario(req.body.horario);
+    res.redirect(`/frequencia?turma_id=${tId}&data=${data}&horario=${hId}&erro=${encodeURIComponent(err.message || 'Não foi possível negar o lançamento fora do horário.')}`);
   }
 });
 

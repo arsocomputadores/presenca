@@ -32,7 +32,7 @@
     <div class="card-header">
       <h3>Aviso Automático de Pendência</h3>
     </div>
-    <div class="card-body" style="display:flex; gap:1rem; align-items:center; justify-content:space-between; flex-wrap:wrap">
+    <div class="card-body dashboard-config-body">
       <div>
         <div style="font-weight:700; margin-bottom:.35rem">
           Status:
@@ -61,7 +61,7 @@
     <div class="card-header">
       <h3>Lançamento Pela Direção</h3>
     </div>
-    <div class="card-body" style="display:flex; gap:1rem; align-items:center; justify-content:space-between; flex-wrap:wrap">
+    <div class="card-body dashboard-config-body">
       <div>
         <div style="font-weight:700; margin-bottom:.35rem">
           Status:
@@ -92,15 +92,56 @@
 <% if (usuario.perfil === 'admin') { %>
   <div class="card" style="margin-top:1.5rem">
     <div class="card-header">
-      <h3>Liberação Após o Horário</h3>
+      <h3>Pedidos Após o Horário</h3>
     </div>
     <div class="card-body">
-      <div class="text-muted">
-        Para liberar um professor a lançar após o horário, abra <strong>Frequência</strong>, selecione a
-        <strong>turma</strong>, a <strong>data</strong> e o <strong>horário</strong>. Quando houver solicitação do professor,
-        aparecerá a seção <strong>Liberações de Lançamento Fora do Horário</strong> com o botão
-        <strong>Liberar lançamento fora do horário</strong>.
-      </div>
+      <% if (!solicitacoesLancamentoForaHorarioPendentes || solicitacoesLancamentoForaHorarioPendentes.length === 0) { %>
+        <div class="alert alert-success" style="margin:0">
+          Não há pedidos pendentes de lançamento fora do horário no momento.
+        </div>
+      <% } else { %>
+        <div class="text-muted" style="margin-bottom:1rem">
+          <strong><%= solicitacoesLancamentoForaHorarioPendentes.length %></strong> pedido(s) aguardando decisão.
+        </div>
+        <div class="request-list">
+          <% solicitacoesLancamentoForaHorarioPendentes.forEach(function(item) { %>
+            <div class="request-card">
+              <div class="request-card-header">
+                <div>
+                  <div class="request-card-title"><%= item.solicitante_nome %></div>
+                  <div class="request-card-meta">
+                    <span><strong>Turma:</strong> <%= item.turma_nome %></span>
+                    <span><strong>Turno:</strong> <%= formatarTurno(item.turma_turno) %></span>
+                    <span><strong>Data:</strong> <%= formatarData(item.data) %></span>
+                    <span><strong>Horário:</strong> <%= item.horario %>º horário</span>
+                  </div>
+                </div>
+                <span class="badge badge-warning">Pendente</span>
+              </div>
+              <div class="request-card-body">
+                <div class="request-card-reason">
+                  <strong>Motivo:</strong> <%= item.motivo %>
+                </div>
+                <div class="request-card-actions">
+                  <form method="post" action="/frequencia/liberar-lancamento-fora-horario">
+                    <input type="hidden" name="solicitacao_id" value="<%= item.id %>">
+                    <input type="hidden" name="origem" value="painel">
+                    <button type="submit" class="btn btn-primary">Liberar</button>
+                  </form>
+                  <form method="post" action="/frequencia/negar-lancamento-fora-horario" onsubmit="return confirm('Deseja negar este pedido de lançamento fora do horário?');">
+                    <input type="hidden" name="solicitacao_id" value="<%= item.id %>">
+                    <input type="hidden" name="origem" value="painel">
+                    <button type="submit" class="btn btn-secondary">Negar</button>
+                  </form>
+                  <a href="/frequencia?turma_id=<%= item.turma_id %>&data=<%= item.data %>&horario=<%= item.horario %>" class="btn btn-outline">
+                    Abrir frequência
+                  </a>
+                </div>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
     </div>
   </div>
 <% } %>
