@@ -14,6 +14,18 @@ const {
   normalizeFrequenciaStatus,
 } = require('./lib/reportUtils');
 
+function getAppVersion() {
+  const pkg = require('./package.json');
+  const sha = process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA;
+  if (process.env.APP_BUILD_VERSION) {
+    return String(process.env.APP_BUILD_VERSION);
+  }
+  if (sha) {
+    return `sha-${sha.slice(0, 7)}`;
+  }
+  return `v${pkg.version || '0.0.0'}`;
+}
+
 function ordenarAlunosPorNome(lista = []) {
   const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
   return [...lista].sort((a, b) => {
@@ -458,7 +470,7 @@ app.use((req, res, next) => {
 // --- Auth ---
 app.get('/login', (req, res) => {
   if (req.session.usuario) return res.redirect('/');
-  res.render('login', { erro: null });
+  res.render('login', { erro: null, versao: getAppVersion() });
 });
 
 app.post('/login', async (req, res) => {
@@ -468,7 +480,10 @@ app.post('/login', async (req, res) => {
   
   const usuario = await store.autenticar(cpfLimpo, senha);
   if (!usuario) {
-    return res.render('login', { erro: 'CPF ou senha inválidos.' });
+    return res.render('login', {
+      erro: 'CPF ou senha inválidos.',
+      versao: getAppVersion(),
+    });
   }
   req.session.usuario = {
     id: usuario.id,
