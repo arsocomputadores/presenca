@@ -115,7 +115,49 @@
         <% } %>
       </div>
 
-      <% if (usuario.perfil === 'admin') { %>
+      <% if (usuario.perfil === 'professor' && alunos.length > 0) { %>
+        <div class="alert alert-success" style="margin-top:1rem">
+          Frequência lançada com sucesso para <strong><%= turmaSelecionada?.nome || 'a turma' %></strong> no <strong><%= horario %>º horário</strong>.
+        </div>
+        <div class="table-wrap freq-table-wrap">
+          <table class="freq-table">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Aluno</th>
+                <th>Presença</th>
+                <th>Observação</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% alunos.forEach(function(a) { %>
+                <tr class="student-freq-card">
+                  <td data-label="Código">
+                    <span class="student-code"><%= a.codigo_formatado %></span>
+                  </td>
+                  <td class="student-info" data-label="Aluno">
+                    <span class="student-name"><%= a.nome %></span>
+                  </td>
+                  <td data-label="Presença">
+                    <% if (a.status === 'P') { %>
+                      <span class="badge badge-success">Presente</span>
+                    <% } else if (a.status === 'F') { %>
+                      <span class="badge badge-error">Falta</span>
+                    <% } else if (a.status === 'J') { %>
+                      <span class="badge badge-warning">Justificada</span>
+                    <% } else { %>
+                      <span class="badge">Sem status</span>
+                    <% } %>
+                  </td>
+                  <td data-label="Observação">
+                    <%= a.observacao || '—' %>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } else if (usuario.perfil === 'admin') { %>
         <div class="card" style="margin-top:1rem">
           <div class="card-header">
             <h4>Alteração da Frequência Lançada</h4>

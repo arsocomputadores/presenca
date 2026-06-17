@@ -1539,7 +1539,11 @@ app.get('/frequencia', requireAuth, async (req, res) => {
     }
   }
 
-  if (turmaId && (!jaLancada || podeEditarLancada) && (!horarioForaDoPrazo || req.session.usuario.perfil !== 'professor' || podeLancarForaHorario)) {
+  if (
+    turmaId &&
+    (!jaLancada || podeEditarLancada || req.session.usuario.perfil === 'admin' || req.session.usuario.perfil === 'professor') &&
+    (!horarioForaDoPrazo || req.session.usuario.perfil !== 'professor' || podeLancarForaHorario)
+  ) {
     alunos = await store.getFrequenciaTurma(turmaId, data, horario);
   }
 

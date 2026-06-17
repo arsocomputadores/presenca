@@ -471,18 +471,18 @@ SELECT
     t.nome AS turma_nome,
     YEAR(f.data) AS ano,
     MONTH(f.data) AS mes,
-    COUNT(f.id) AS dias_lancados,
-    SUM(CASE WHEN f.status = 'P' THEN 1 ELSE 0 END) AS total_presencas,
-    SUM(CASE WHEN f.status = 'F' THEN 1 ELSE 0 END) AS total_faltas,
-    SUM(CASE WHEN f.status = 'J' THEN 1 ELSE 0 END) AS total_justificadas,
+    COUNT(DISTINCT f.data) AS dias_lancados,
+    COUNT(DISTINCT CASE WHEN f.status = 'P' THEN f.data END) AS total_presencas,
+    COUNT(DISTINCT CASE WHEN f.status = 'F' THEN f.data END) AS total_faltas,
+    COUNT(DISTINCT CASE WHEN f.status = 'J' THEN f.data END) AS total_justificadas,
     ROUND(
-        100.0 * SUM(CASE WHEN f.status = 'P' THEN 1 ELSE 0 END)
-        / NULLIF(COUNT(f.id), 0),
+        100.0 * COUNT(DISTINCT CASE WHEN f.status = 'P' THEN f.data END)
+        / NULLIF(COUNT(DISTINCT f.data), 0),
         2
     ) AS percentual_presenca,
     ROUND(
-        100.0 * SUM(CASE WHEN f.status IN ('F') THEN 1 ELSE 0 END)
-        / NULLIF(COUNT(f.id), 0),
+        100.0 * COUNT(DISTINCT CASE WHEN f.status = 'F' THEN f.data END)
+        / NULLIF(COUNT(DISTINCT f.data), 0),
         2
     ) AS percentual_faltas
 FROM projetos p
@@ -492,6 +492,7 @@ LEFT JOIN matriculas m ON m.aluno_id = a.id AND m.ativa = 1
 LEFT JOIN turmas t ON t.id = m.turma_id
 LEFT JOIN frequencias f
     ON f.aluno_id = a.id
+    AND f.turma_id = m.turma_id
     AND f.data >= pa.data_inicio
     AND (pa.data_fim IS NULL OR f.data <= pa.data_fim)
     AND f.data >= p.data_inicio
@@ -582,18 +583,18 @@ BEGIN
         a.nome AS nome_aluno,
         CONCAT(LPAD(a.codigo, 8, '0'), ' - ', a.nome) AS codigo_nome,
         t.nome AS turma,
-        COUNT(f.id) AS dias_lancados,
-        SUM(CASE WHEN f.status = 'P' THEN 1 ELSE 0 END) AS presencas,
-        SUM(CASE WHEN f.status = 'F' THEN 1 ELSE 0 END) AS faltas,
-        SUM(CASE WHEN f.status = 'J' THEN 1 ELSE 0 END) AS justificadas,
+        COUNT(DISTINCT f.data) AS dias_lancados,
+        COUNT(DISTINCT CASE WHEN f.status = 'P' THEN f.data END) AS presencas,
+        COUNT(DISTINCT CASE WHEN f.status = 'F' THEN f.data END) AS faltas,
+        COUNT(DISTINCT CASE WHEN f.status = 'J' THEN f.data END) AS justificadas,
         ROUND(
-            100.0 * SUM(CASE WHEN f.status = 'P' THEN 1 ELSE 0 END)
-            / NULLIF(COUNT(f.id), 0),
+            100.0 * COUNT(DISTINCT CASE WHEN f.status = 'P' THEN f.data END)
+            / NULLIF(COUNT(DISTINCT f.data), 0),
             2
         ) AS percentual_presenca,
         ROUND(
-            100.0 * SUM(CASE WHEN f.status = 'F' THEN 1 ELSE 0 END)
-            / NULLIF(COUNT(f.id), 0),
+            100.0 * COUNT(DISTINCT CASE WHEN f.status = 'F' THEN f.data END)
+            / NULLIF(COUNT(DISTINCT f.data), 0),
             2
         ) AS percentual_faltas
     FROM projeto_alunos pa
@@ -603,6 +604,7 @@ BEGIN
     LEFT JOIN turmas t ON t.id = m.turma_id
     LEFT JOIN frequencias f
         ON f.aluno_id = a.id
+        AND f.turma_id = m.turma_id
         AND f.data BETWEEN v_inicio AND v_fim
         AND f.data >= pa.data_inicio
         AND (pa.data_fim IS NULL OR f.data <= pa.data_fim)
