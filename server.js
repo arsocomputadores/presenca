@@ -162,9 +162,21 @@ const DIAS_SEMANA = [
 ];
 const HORA_ALERTA_PENDENCIA = Math.min(23, Math.max(0, Number.parseInt(process.env.HORA_ALERTA_PENDENCIA || '18', 10) || 18));
 const MINUTO_ALERTA_PENDENCIA = Math.min(59, Math.max(0, Number.parseInt(process.env.MINUTO_ALERTA_PENDENCIA || '0', 10) || 0));
+const DATAS_FREQUENCIA_LIBERADA = (process.env.FREQUENCIA_LIBERADA_DATAS || '2026-07-04')
+  .split(',')
+  .map((value) => String(value).trim())
+  .filter(Boolean);
+
+function dataEstaLiberadaParaFrequencia(dataStr) {
+  if (!dataStr) return false;
+  return DATAS_FREQUENCIA_LIBERADA.includes(String(dataStr));
+}
 
 function getDiaSemanaInfo(dataStr) {
   if (!dataStr) return null;
+  if (dataEstaLiberadaParaFrequencia(dataStr)) {
+    return { value: 'sabado', label: 'Sábado', day: 6 };
+  }
   const [ano, mes, dia] = String(dataStr).split('-').map(Number);
   if (!ano || !mes || !dia) return null;
   const data = new Date(ano, mes - 1, dia);

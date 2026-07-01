@@ -42,11 +42,18 @@
       </div>
 
       <div style="margin-top:1.5rem">
-        <h4>Vincular Turmas</h4>
-        <div class="turmas-grid" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); margin-top: 0.5rem;">
+        <h4>Vincular turmas</h4>
+        <p class="text-muted" style="margin-top:0.25rem; margin-bottom:0.75rem;">
+          <% if (usuario_edit && usuario_edit.perfil === 'professor') { %>
+            Selecione todas as turmas do professor. Para lançamento de frequência, o acesso será liberado apenas nas turmas em que ele estiver designado no 1º ou 6º horário.
+          <% } else { %>
+            Selecione as turmas que este usuário deverá acompanhar.
+          <% } %>
+        </p>
+        <div class="turmas-grid" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); margin-top: 0.5rem;">
           <% turmas.forEach(function(t) { %>
             <label style="display: flex; gap: 0.5rem; align-items: center; background: #f8f9fa; padding: 0.5rem; border-radius: 4px; cursor: pointer;">
-              <input type="checkbox" name="turmas_ids" value="<%= t.id %>" 
+              <input type="checkbox" name="turmas_ids" value="<%= t.id %>"
                 <%= usuario_edit && usuario_edit.turmas_ids && (Array.isArray(usuario_edit.turmas_ids) ? usuario_edit.turmas_ids.map(Number).includes(Number(t.id)) : String(usuario_edit.turmas_ids).split(',').map(Number).includes(Number(t.id))) ? 'checked' : '' %>>
               <span><%= t.nome %> (<%= t.serie %>)</span>
             </label>
