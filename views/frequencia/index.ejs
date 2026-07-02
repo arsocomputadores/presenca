@@ -73,6 +73,12 @@
       <% } %>
     </div>
 
+    <% if (usuario.perfil === 'professor' && !podeSalvarFrequencia && turmaSelecionada) { %>
+      <div class="alert alert-info">
+        Você está consultando a frequência da turma <strong><%= turmaSelecionada.nome %></strong>. O lançamento permanece restrito às turmas vinculadas ao seu cadastro.
+      </div>
+    <% } %>
+
     <% if (horarioForaDoPrazo && !jaLancada && usuario.perfil === 'professor' && !podeLancarForaHorario) { %>
       <div class="alert alert-warning">
         O prazo para lançamento desta frequência já terminou. Solicite ao administrador a liberação para lançar fora do horário.
@@ -262,9 +268,51 @@
         </div>
       </div>
     <% } else if (!turmaSelecionada) { %>
-      <p style="color:var(--muted)">Selecione uma turma para lançar a frequência.</p>
+      <p style="color:var(--muted)">Selecione uma turma para consultar a frequência.</p>
     <% } else if (alunos.length === 0) { %>
       <p style="color:var(--muted)">Nenhum aluno ativo nesta turma.</p>
+    <% } else if (!podeSalvarFrequencia) { %>
+      <div class="alert alert-info" style="margin-bottom:1rem">
+        Consulta liberada para esta turma. Para lançar ou alterar a frequência, é necessário ter vínculo com a turma.
+      </div>
+      <div class="table-wrap freq-table-wrap">
+        <table class="freq-table">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Aluno</th>
+              <th>Presença</th>
+              <th>Observação</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% alunos.forEach(function(a) { %>
+              <tr class="student-freq-card">
+                <td data-label="Código">
+                  <span class="student-code"><%= a.codigo_formatado %></span>
+                </td>
+                <td class="student-info" data-label="Aluno">
+                  <span class="student-name"><%= a.nome %></span>
+                </td>
+                <td data-label="Presença">
+                  <% if (a.status === 'P') { %>
+                    <span class="badge badge-success">Presente</span>
+                  <% } else if (a.status === 'F') { %>
+                    <span class="badge badge-error">Falta</span>
+                  <% } else if (a.status === 'J') { %>
+                    <span class="badge badge-warning">Justificada</span>
+                  <% } else { %>
+                    <span class="badge">Sem status</span>
+                  <% } %>
+                </td>
+                <td data-label="Observação">
+                  <%= a.observacao || '—' %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
     <% } else { %>
       <form method="post" action="/frequencia" id="form-frequencia">
       <input type="hidden" name="turma_id" value="<%= turmaId %>">

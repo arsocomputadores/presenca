@@ -238,8 +238,13 @@ async function getProfessoresAtivosSafe() {
 }
 
 async function getTurmasDisponiveisFrequencia(usuario, horario, dataStr) {
-  if (usuario?.perfil === 'professor' && typeof store.getTurmasProfessorHorario === 'function') {
-    return store.getTurmasProfessorHorario(usuario.id, horario, dataStr);
+  if (usuario?.perfil === 'professor') {
+    if (typeof store.getTurmas === 'function') {
+      return store.getTurmas();
+    }
+    if (typeof store.getTurmasProfessorHorario === 'function') {
+      return store.getTurmasProfessorHorario(usuario.id, horario, dataStr);
+    }
   }
   return store.getTurmas(usuario?.perfil === 'professor' ? usuario.id : null);
 }
@@ -365,6 +370,7 @@ app.use(async (req, res, next) => {
   res.locals.modoDemo = !isMysqlEnabled();
   res.locals.anoLetivo = new Date().getFullYear();
   res.locals.mensagensNaoLidas = 0;
+  res.locals.podeSalvarFrequencia = false;
   res.locals.direcaoPodeLancarFrequencia = false;
   
   // Helper global para formatar datas no EJS
@@ -1471,32 +1477,26 @@ app.get('/frequencia', requireAuth, async (req, res) => {
   let horario = normalizeHorario(req.query.horario);
   const diaSemanaAtual = getDiaSemanaInfo(data);
   let turmas = await getTurmasDisponiveisFrequencia(req.session.usuario, horario, data);
-  let horariosDisponiveis = req.session.usuario.perfil === 'professor' ? [] : [1, 6];
+  let horariosDisponiveis = req.session.usuario.perfil === 'professor' ? [1, 6] : [1, 6];
   const turmaIdSolicitada = req.query.turma_id ? Number(req.query.turma_id) : null;
   let turmaId = turmaIdSolicitada || turmas[0]?.id || null;
   let erroHorario = null;
 
   if (req.session.usuario.perfil === 'professor') {
-    turmas = await getTurmasProfessorPorData(req.session.usuario, data);
+    turmas = await getTurmasDisponiveisFrequencia(req.session.usuario, horario, data);
     turmaId = turmaIdSolicitada || turmas[0]?.id || null;
     const temTurma = turmaId ? turmas.some((t) => t.id === turmaId) : false;
     if (turmaId && !temTurma) {
       turmaId = turmas[0]?.id || null;
     }
-    horariosDisponiveis = turmaId
-      ? await getHorariosDisponiveisProfessor(req.session.usuario.id, turmaId, data)
-      : [];
-    if (horariosDisponiveis.length && !horariosDisponiveis.includes(horario)) {
-      horario = horariosDisponiveis[0];
+    horariosDisponiveis = turmaId ? [1, 6] : [];
+    if (horario && !horariosDisponiveis.includes(horario)) {
+      horario = horariosDisponiveis[0] || normalizeHorario(req.query.horario);
     }
-    if (turmaId && !horariosDisponiveis.length) {
+    if (!turmaId && turmas.length === 0) {
       erroHorario = diaSemanaAtual
-        ? `Nenhum horário está liberado para você nesta turma na ${diaSemanaAtual.label}.`
-        : 'Nenhum horário está liberado para você nesta turma.';
-    } else if (!turmaId && turmas.length === 0) {
-      erroHorario = diaSemanaAtual
-        ? `Nenhuma turma está marcada para você na ${diaSemanaAtual.label}.`
-        : 'Nenhuma turma está marcada para você.';
+        ? `Nenhuma turma está disponível para consulta na ${diaSemanaAtual.label}.`
+        : 'Nenhuma turma está disponível para consulta.';
     }
   }
 
@@ -1504,17 +1504,21 @@ app.get('/frequencia', requireAuth, async (req, res) => {
     ? turmas.find((t) => t.id === turmaId) || await store.getTurma(turmaId)
     : null;
 
+  let podeSalvarFrequencia = req.session.usuario.perfil !== 'professor';
   if (req.session.usuario.perfil === 'professor' && turmaSelecionada) {
-    const horariosDentroDoPrazo = horariosDisponiveis.filter((h) =>
-      professorPodeLancarAteHorario(turmaSelecionada.turno, h, data)
-    );
-    if (horariosDentroDoPrazo.length !== horariosDisponiveis.length) {
-      horariosDisponiveis = horariosDentroDoPrazo;
-      if (!horariosDisponiveis.includes(horario)) {
-        erroHorario = getMensagemLimiteLancamentoProfessor(turmaSelecionada.turno, horario);
-      }
-      if (horariosDisponiveis.length === 1) {
-        horario = horariosDisponiveis[0];
+    podeSalvarFrequencia = await usuarioTemAcessoTurmaFrequencia(req.session.usuario, turmaSelecionada.id, horario, data);
+    if (podeSalvarFrequencia) {
+      const horariosDentroDoPrazo = horariosDisponiveis.filter((h) =>
+        professorPodeLancarAteHorario(turmaSelecionada.turno, h, data)
+      );
+      if (horariosDentroDoPrazo.length !== horariosDisponiveis.length) {
+        horariosDisponiveis = horariosDentroDoPrazo;
+        if (!horariosDisponiveis.includes(horario)) {
+          erroHorario = getMensagemLimiteLancamentoProfessor(turmaSelecionada.turno, horario);
+        }
+        if (horariosDisponiveis.length === 1) {
+          horario = horariosDisponiveis[0];
+        }
       }
     }
   }
@@ -1530,7 +1534,7 @@ app.get('/frequencia', requireAuth, async (req, res) => {
   let solicitacoesLancamentoPendentesAdmin = [];
   let podeLancarForaHorario = false;
 
-  if (req.session.usuario.perfil === 'professor' && turmaSelecionada) {
+  if (req.session.usuario.perfil === 'professor' && turmaSelecionada && podeSalvarFrequencia) {
     horarioForaDoPrazo = !professorPodeLancarAteHorario(turmaSelecionada.turno, horario, data);
   }
 
@@ -1589,6 +1593,7 @@ app.get('/frequencia', requireAuth, async (req, res) => {
     solicitacoesPendentesAdmin,
     podeEditarLancada,
     modoEdicao,
+    podeSalvarFrequencia,
     horarioForaDoPrazo,
     solicitacaoLancamentoAtual,
     solicitacoesLancamentoPendentesAdmin,
