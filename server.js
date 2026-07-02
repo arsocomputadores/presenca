@@ -237,16 +237,23 @@ async function getProfessoresAtivosSafe() {
   return store.getProfessoresAtivos();
 }
 
+function usuarioPodeConsultarOutrasTurmas(usuario) {
+  return Boolean(usuario?.perfil === 'professor' && Number(usuario?.pode_consultar_outras_turmas || 0) === 1);
+}
+
 async function getTurmasDisponiveisFrequencia(usuario, horario, dataStr) {
   if (usuario?.perfil === 'professor') {
-    if (typeof store.getTurmas === 'function') {
-      return store.getTurmas();
+    if (usuarioPodeConsultarOutrasTurmas(usuario)) {
+      return typeof store.getTurmas === 'function' ? store.getTurmas() : [];
     }
     if (typeof store.getTurmasProfessorHorario === 'function') {
       return store.getTurmasProfessorHorario(usuario.id, horario, dataStr);
     }
+    if (typeof store.getTurmas === 'function') {
+      return store.getTurmas(usuario.id);
+    }
   }
-  return store.getTurmas(usuario?.perfil === 'professor' ? usuario.id : null);
+  return typeof store.getTurmas === 'function' ? store.getTurmas(usuario?.perfil === 'professor' ? usuario.id : null) : [];
 }
 
 function mergeTurmasById(...listas) {
@@ -259,6 +266,9 @@ function mergeTurmasById(...listas) {
 
 async function getTurmasProfessorPorData(usuario, dataStr) {
   if (!usuario || usuario.perfil !== 'professor') return store.getTurmas();
+  if (usuarioPodeConsultarOutrasTurmas(usuario)) {
+    return typeof store.getTurmas === 'function' ? store.getTurmas() : [];
+  }
   if (typeof store.getTurmasProfessorHorario !== 'function') {
     return store.getTurmas(usuario.id);
   }
@@ -548,6 +558,7 @@ app.post('/usuarios', requireAuth, requirePerfil('admin'), async (req, res) => {
   try {
     const cpf = String(req.body.cpf || '').replace(/\D/g, '');
     const turmas_ids_raw = req.body.turmas_ids;
+    const podeConsultarOutrasTurmas = Number(req.body.pode_consultar_outras_turmas) ? 1 : 0;
     let turmas_ids = [];
     if (Array.isArray(turmas_ids_raw)) turmas_ids = turmas_ids_raw;
     else if (typeof turmas_ids_raw === 'string' && turmas_ids_raw.trim()) turmas_ids = turmas_ids_raw.split(',');
@@ -559,7 +570,8 @@ app.post('/usuarios', requireAuth, requirePerfil('admin'), async (req, res) => {
       senha: req.body.senha,
       perfil: String(req.body.perfil || '').trim(),
       ativo: Number(req.body.ativo) ? 1 : 0,
-      turmas_ids
+      turmas_ids,
+      pode_consultar_outras_turmas: podeConsultarOutrasTurmas,
     });
     res.redirect('/usuarios?sucesso=Usuário cadastrado com sucesso.');
   } catch (err) {
@@ -592,6 +604,7 @@ app.post('/usuarios/:id', requireAuth, requirePerfil('admin'), async (req, res) 
     if (!Number.isFinite(id) || id <= 0) return res.redirect('/usuarios?erro=Usuário inválido.');
     const cpf = String(req.body.cpf || '').replace(/\D/g, '');
     const turmas_ids_raw = req.body.turmas_ids;
+    const podeConsultarOutrasTurmas = Number(req.body.pode_consultar_outras_turmas) ? 1 : 0;
     let turmas_ids = [];
     if (Array.isArray(turmas_ids_raw)) turmas_ids = turmas_ids_raw;
     else if (typeof turmas_ids_raw === 'string' && turmas_ids_raw.trim()) turmas_ids = turmas_ids_raw.split(',');
@@ -603,7 +616,8 @@ app.post('/usuarios/:id', requireAuth, requirePerfil('admin'), async (req, res) 
       senha: req.body.senha,
       perfil: String(req.body.perfil || '').trim(),
       ativo: Number(req.body.ativo) ? 1 : 0,
-      turmas_ids
+      turmas_ids,
+      pode_consultar_outras_turmas: podeConsultarOutrasTurmas,
     });
     res.redirect('/usuarios?sucesso=Usuário atualizado com sucesso.');
   } catch (err) {

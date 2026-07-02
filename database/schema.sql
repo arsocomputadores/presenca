@@ -39,6 +39,7 @@ CREATE TABLE usuarios (
     senha_hash          VARCHAR(255) NOT NULL COMMENT 'Hash bcrypt/argon2',
     perfil              ENUM('admin', 'coordenacao', 'direcao', 'professor') NOT NULL DEFAULT 'professor',
     ativo               TINYINT(1) NOT NULL DEFAULT 1,
+    pode_consultar_outras_turmas TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Permite ao professor consultar frequência de turmas fora da sua atribuição',
     aviso_inicial_lido_em DATETIME NULL,
     criado_em           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     atualizado_em       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

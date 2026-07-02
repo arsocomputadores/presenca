@@ -1,1 +1,9 @@
 .vercel
+backups/
+cookie.txt
+home_after_login.html
+login_result.html
+temp_login.html
+prod.env
+*.env
+*.log

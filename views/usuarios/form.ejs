@@ -41,6 +41,20 @@
         </div>
       </div>
 
+      <% if (usuario_edit && usuario_edit.perfil === 'professor' || !usuario_edit) { %>
+      <div style="margin-top:1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 6px;">
+        <div class="form-group" style="margin-bottom:0">
+          <label for="pode_consultar_outras_turmas" style="display:flex; gap:0.5rem; align-items:flex-start; cursor:pointer;">
+            <input type="checkbox" id="pode_consultar_outras_turmas" name="pode_consultar_outras_turmas" value="1" <%= usuario_edit && Number(usuario_edit.pode_consultar_outras_turmas) === 1 ? 'checked' : '' %>>
+            <span>
+              <strong>Permitir consulta de frequência em outras turmas</strong>
+              <div class="text-muted" style="margin-top:0.25rem; font-size:0.9rem;">Se marcado, o professor poderá consultar a frequência de turmas fora da sua atribuição de 1º/6º horário, sem perder o bloqueio de lançamento nas turmas não designadas.</div>
+            </span>
+          </label>
+        </div>
+      </div>
+      <% } %>
+
       <div style="margin-top:1.5rem">
         <h4>Vincular turmas</h4>
         <p class="text-muted" style="margin-top:0.25rem; margin-bottom:0.75rem;">
