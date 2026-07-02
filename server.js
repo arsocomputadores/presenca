@@ -519,6 +519,7 @@ app.post('/login', async (req, res) => {
     perfil: usuario.perfil,
     turmas: usuario.turmas || [],
     aviso_inicial_lido_em: usuario.aviso_inicial_lido_em || null,
+    pode_consultar_outras_turmas: Number(usuario?.pode_consultar_outras_turmas || 0),
   };
   res.redirect(await getRedirectPosLogin(req.session.usuario));
 });
