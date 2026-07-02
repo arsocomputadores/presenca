@@ -1476,39 +1476,32 @@ app.get('/frequencia', requireAuth, async (req, res) => {
   const data = req.query.data || getTodayYmdLocal();
   let horario = normalizeHorario(req.query.horario);
   const diaSemanaAtual = getDiaSemanaInfo(data);
-  // All turmas available for consultation
-  const turmasConsulta = await store.getTurmas();
-  // Turmas em que o professor tem lançamento (1º/6º) — default empty for non-professors
-  let turmasLancamento = [];
-  if (req.session.usuario.perfil === 'professor') {
-    if (typeof store.getTurmasProfessorHorario === 'function') {
-      const [t1, t6] = await Promise.all([
-        store.getTurmasProfessorHorario(req.session.usuario.id, 1, data),
-        store.getTurmasProfessorHorario(req.session.usuario.id, 6, data),
-      ]);
-      turmasLancamento = mergeTurmasById(t1, t6);
-    } else {
-      turmasLancamento = await store.getTurmas(req.session.usuario.id);
-    }
-  }
-
-  let horariosDisponiveis = [1, 6];
+  let turmas = await getTurmasDisponiveisFrequencia(req.session.usuario, horario, data);
+  let horariosDisponiveis = req.session.usuario.perfil === 'professor' ? [1, 6] : [1, 6];
   const turmaIdSolicitada = req.query.turma_id ? Number(req.query.turma_id) : null;
-  // Default selection: prefer a turma where professor can launch, otherwise first available for consultation
-  let turmaId = turmaIdSolicitada || turmasLancamento[0]?.id || turmasConsulta[0]?.id || null;
+  let turmaId = turmaIdSolicitada || turmas[0]?.id || null;
   let erroHorario = null;
 
-  // If professor: ensure turmaId is valid (either in lancamento or consulta)
   if (req.session.usuario.perfil === 'professor') {
-    const temTurmaLanc = turmaId ? turmasLancamento.some((t) => t.id === turmaId) : false;
-    const temTurmaCons = turmaId ? turmasConsulta.some((t) => t.id === turmaId) : false;
-    if (!temTurmaLanc && !temTurmaCons) {
-      turmaId = turmasLancamento[0]?.id || turmasConsulta[0]?.id || null;
+    turmas = await getTurmasDisponiveisFrequencia(req.session.usuario, horario, data);
+    turmaId = turmaIdSolicitada || turmas[0]?.id || null;
+    const temTurma = turmaId ? turmas.some((t) => t.id === turmaId) : false;
+    if (turmaId && !temTurma) {
+      turmaId = turmas[0]?.id || null;
+    }
+    horariosDisponiveis = turmaId ? [1, 6] : [];
+    if (horario && !horariosDisponiveis.includes(horario)) {
+      horario = horariosDisponiveis[0] || normalizeHorario(req.query.horario);
+    }
+    if (!turmaId && turmas.length === 0) {
+      erroHorario = diaSemanaAtual
+        ? `Nenhuma turma está disponível para consulta na ${diaSemanaAtual.label}.`
+        : 'Nenhuma turma está disponível para consulta.';
     }
   }
 
   const turmaSelecionada = turmaId
-    ? (turmasConsulta.find((t) => t.id === turmaId) || await store.getTurma(turmaId))
+    ? turmas.find((t) => t.id === turmaId) || await store.getTurma(turmaId)
     : null;
 
   let podeSalvarFrequencia = req.session.usuario.perfil !== 'professor';
@@ -1587,8 +1580,7 @@ app.get('/frequencia', requireAuth, async (req, res) => {
 
   res.render('frequencia/index', {
     titulo: 'Lançar frequência',
-    turmasConsulta,
-    turmasLancamento,
+    turmas,
     turmaId,
     turmaSelecionada,
     data,

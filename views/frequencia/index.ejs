@@ -12,38 +12,11 @@
       <form method="get" action="/frequencia" class="freq-toolbar">
         <div class="form-group">
           <label for="turma_id">Turma</label>
-          <% if (usuario.perfil === 'professor') { %>
-            <select name="turma_id" id="turma_id" onchange="this.form.submit()">
-              <% if (turmasLancamento && turmasLancamento.length) { %>
-                <% turmasLancamento.forEach(function(t) { %>
-                  <option value="<%= t.id %>" <%= turmaId == t.id ? 'selected' : '' %>><%= t.nome %> — <%= t.serie %></option>
-                <% }) %>
-              <% } else { %>
-                <% turmasConsulta.forEach(function(t) { %>
-                  <option value="<%= t.id %>" <%= turmaId == t.id ? 'selected' : '' %>><%= t.nome %> — <%= t.serie %></option>
-                <% }) %>
-              <% } %>
-            </select>
-            <button type="button" class="btn btn-link" onclick="document.getElementById('outras-turmas').classList.toggle('hidden')">Ver outras turmas</button>
-            <div id="outras-turmas" class="hidden" style="margin-top:.5rem">
-              <label>Outras turmas (consulta)</label>
-              <select onchange="document.getElementById('select-outras').value=this.value; this.form.submit()" id="select-outras">
-                <option value="">-- selecione --</option>
-                <% (turmasConsulta || []).forEach(function(t) { %>
-                  <% const isLanc = (turmasLancamento || []).some(tt => tt.id === t.id); %>
-                  <% if (!isLanc) { %>
-                    <option value="<%= t.id %>"><%= t.nome %> — <%= t.serie %></option>
-                  <% } %>
-                <% }) %>
-              </select>
-            </div>
-          <% } else { %>
-            <select name="turma_id" id="turma_id" onchange="this.form.submit()">
-              <% turmasConsulta.forEach(function(t) { %>
-                <option value="<%= t.id %>" <%= turmaId == t.id ? 'selected' : '' %>><%= t.nome %> — <%= t.serie %></option>
-              <% }) %>
-            </select>
-          <% } %>
+          <select name="turma_id" id="turma_id" onchange="this.form.submit()">
+            <% turmas.forEach(function(t) { %>
+              <option value="<%= t.id %>" <%= turmaId == t.id ? 'selected' : '' %>><%= t.nome %> — <%= t.serie %></option>
+            <% }) %>
+          </select>
         </div>
         <div class="form-group">
           <label for="data">Data</label>
