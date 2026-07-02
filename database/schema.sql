@@ -18,6 +18,8 @@ CREATE TABLE turmas (
     serie               VARCHAR(30)  NOT NULL COMMENT 'Ex: 6º ano',
     turno               ENUM('manha', 'tarde', 'noite', 'integral') NOT NULL DEFAULT 'manha',
     ano_letivo          SMALLINT UNSIGNED NOT NULL,
+    professor_conselheiro_id INT UNSIGNED NULL COMMENT 'Professor conselheiro da turma',
+    conselheiro_pode_lancar TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = conselheiro pode lançar frequência',
     professor_responsavel_id INT UNSIGNED NULL COMMENT 'FK definida após criar usuarios',
     professor_primeiro_horario_id INT UNSIGNED NULL COMMENT 'Professor responsável pelo 1º horário',
     professor_sexto_horario_id INT UNSIGNED NULL COMMENT 'Professor responsável pelo 6º horário',
@@ -51,6 +53,11 @@ CREATE TABLE usuarios (
 ALTER TABLE turmas
     ADD CONSTRAINT fk_turmas_professor
     FOREIGN KEY (professor_responsavel_id) REFERENCES usuarios (id)
+    ON DELETE SET NULL ON UPDATE CASCADE;
+
+ALTER TABLE turmas
+    ADD CONSTRAINT fk_turmas_conselheiro
+    FOREIGN KEY (professor_conselheiro_id) REFERENCES usuarios (id)
     ON DELETE SET NULL ON UPDATE CASCADE;
 
 ALTER TABLE turmas
