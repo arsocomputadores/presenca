@@ -865,10 +865,12 @@ app.post('/admin/configuracoes/direcao-lancar-frequencia/usuarios', requireAuth,
 app.get('/relatorios/frequencia', requireAuth, requirePerfil('admin', 'coordenacao', 'direcao'), async (req, res) => {
   const turmas = await store.getTurmas();
   const { turma_id, mes, ano } = req.query;
-  
+
   const m = mes ? Number(mes) : new Date().getMonth() + 1;
   const a = ano ? Number(ano) : new Date().getFullYear();
   const tId = turma_id ? Number(turma_id) : (turmas[0]?.id || null);
+  const mesFinal = m === 12 ? 1 : m + 1;
+  const anoFinal = m === 12 ? a + 1 : a;
 
   let dados = [];
   let aulasDetalhadas = [];
@@ -891,6 +893,8 @@ app.get('/relatorios/frequencia', requireAuth, requirePerfil('admin', 'coordenac
     turmasPorTurno: splitTurmasByTurnoPreservingOrder(turmas),
     turmaId: tId,
     mes: m,
+    mesFinal,
+    anoFinal,
     ano: a,
     dados,
     aulasDetalhadas,
@@ -903,6 +907,8 @@ app.get('/relatorios/frequencia/exportar', requireAuth, requirePerfil('admin', '
   const m = Number(mes);
   const a = Number(ano);
   const tId = Number(turma_id);
+  const mesFinal = m === 12 ? 1 : m + 1;
+  const anoFinal = m === 12 ? a + 1 : a;
 
   const [dados, aulasDetalhadas, turma] = await Promise.all([
     store.getRelatorioFrequenciaTurma(tId, m, a),
@@ -913,7 +919,7 @@ app.get('/relatorios/frequencia/exportar', requireAuth, requirePerfil('admin', '
   ]);
 
   const workbook = new ExcelJS.Workbook();
-  const worksheet = workbook.addWorksheet('Frequência Mensal');
+  const worksheet = workbook.addWorksheet('Frequência Bimestral');
 
   worksheet.columns = [
     { header: 'Código', key: 'codigo', width: 15 },

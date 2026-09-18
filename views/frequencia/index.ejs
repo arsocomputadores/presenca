@@ -125,6 +125,38 @@
         <div class="alert alert-success" style="margin-top:1rem">
           Frequência lançada com sucesso para <strong><%= turmaSelecionada?.nome || 'a turma' %></strong> no <strong><%= horario %>º horário</strong>.
         </div>
+
+        <% if (solicitacaoEdicaoAtual && solicitacaoEdicaoAtual.status === 'pendente') { %>
+          <div class="alert alert-warning" style="margin-top:1rem">
+            Sua solicitação de correção já foi enviada ao administrador e ainda está pendente.
+          </div>
+        <% } else if (solicitacaoEdicaoAtual && solicitacaoEdicaoAtual.status === 'liberada') { %>
+          <div class="alert alert-success" style="margin-top:1rem">
+            Sua solicitação foi liberada. A correção da chamada já está disponível abaixo.
+          </div>
+        <% } else { %>
+          <div class="card correcao-chamada-card" style="margin-top:1rem">
+            <div class="card-header correcao-chamada-header">
+              <h4>Solicitar correção da chamada</h4>
+            </div>
+            <div class="card-body">
+              <div class="correcao-chamada-texto">
+                Se a chamada já foi salva e precisa de ajuste, solicite a correção ao administrador.
+              </div>
+              <form method="post" action="/frequencia/solicitar-edicao">
+                <input type="hidden" name="turma_id" value="<%= turmaId %>">
+                <input type="hidden" name="data" value="<%= data %>">
+                <input type="hidden" name="horario" value="<%= horario %>">
+                <div class="form-group" style="margin-bottom:0.75rem">
+                  <label for="motivo_solicitacao_professor">Motivo da correção</label>
+                  <textarea name="motivo_solicitacao" id="motivo_solicitacao_professor" rows="3" placeholder="Descreva o motivo da correção da chamada." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary correcao-chamada-btn">Solicitar correção ao administrador</button>
+              </form>
+            </div>
+          </div>
+        <% } %>
+
         <div class="table-wrap freq-table-wrap">
           <table class="freq-table">
             <thead>

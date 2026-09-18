@@ -23,12 +23,12 @@
         <% if (usuario && usuario.perfil === 'direcao') { %>
           <a href="/alunos" class="<%= titulo === 'Alunos' ? 'active' : '' %>">Consulta de alunos</a>
           <a href="/relatorios" class="<%= titulo === 'Relatórios de Lançamentos' ? 'active' : '' %>">Relatórios Diários</a>
-          <a href="/relatorios/frequencia" class="<%= titulo === 'Relatório de Frequência por Turma' ? 'active' : '' %>">Relatório Mensal</a>
+          <a href="/relatorios/frequencia" class="<%= titulo === 'Relatório de Frequência por Turma' ? 'active' : '' %>">Relatório Bimestral</a>
           <a href="/relatorios/individual" class="<%= titulo === 'Relatório Individual' ? 'active' : '' %>">Relatório Individual</a>
         <% } else if (usuario && usuario.perfil === 'coordenacao') { %>
           <a href="/alunos" class="<%= titulo === 'Alunos' ? 'active' : '' %>">Consulta de alunos</a>
           <a href="/relatorios" class="<%= titulo === 'Relatórios de Lançamentos' ? 'active' : '' %>">Relatórios Diários</a>
-          <a href="/relatorios/frequencia" class="<%= titulo === 'Relatório de Frequência por Turma' ? 'active' : '' %>">Relatório Mensal</a>
+          <a href="/relatorios/frequencia" class="<%= titulo === 'Relatório de Frequência por Turma' ? 'active' : '' %>">Relatório Bimestral</a>
           <a href="/relatorios/individual" class="<%= titulo === 'Relatório Individual' ? 'active' : '' %>">Relatório Individual</a>
           <a href="/calendario" class="<%= titulo === 'Calendário Escolar' ? 'active' : '' %>">Calendário</a>
         <% } else if (usuario && usuario.perfil === 'admin') { %>
@@ -36,7 +36,7 @@
           <a href="/turmas" class="<%= titulo === 'Turmas' ? 'active' : '' %>">Turmas</a>
           <a href="/projetos" class="<%= titulo.startsWith('Projeto') ? 'active' : '' %>">Projetos</a>
           <a href="/relatorios" class="<%= titulo === 'Relatórios de Lançamentos' ? 'active' : '' %>">Relatórios Diários</a>
-          <a href="/relatorios/frequencia" class="<%= titulo === 'Relatório de Frequência por Turma' ? 'active' : '' %>">Relatório Mensal</a>
+          <a href="/relatorios/frequencia" class="<%= titulo === 'Relatório de Frequência por Turma' ? 'active' : '' %>">Relatório Bimestral</a>
           <a href="/relatorios/individual" class="<%= titulo === 'Relatório Individual' ? 'active' : '' %>">Relatório Individual</a>
           <a href="/calendario" class="<%= titulo === 'Calendário Escolar' ? 'active' : '' %>">Calendário</a>
           <a href="/usuarios" class="<%= titulo === 'Usuários' ? 'active' : '' %>">Usuários</a>
