@@ -16,14 +16,7 @@ const {
 
 function getAppVersion() {
   const pkg = require('./package.json');
-  const sha = process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA;
-  if (process.env.APP_BUILD_VERSION) {
-    return String(process.env.APP_BUILD_VERSION);
-  }
-  if (sha) {
-    return `sha-${sha.slice(0, 7)}`;
-  }
-  return `v${pkg.version || '0.0.0'}`;
+  return `v${pkg.version || '0.0.0'} (${pkg.releaseDate || 'data não informada'})`;
 }
 
 function ordenarAlunosPorNome(lista = []) {
