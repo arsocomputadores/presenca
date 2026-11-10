@@ -7,35 +7,66 @@
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body class="login-page">
-  <div class="login-card">
-    <img src="/img/Logo.png" alt="CEF 411 Logo" style="width: 120px; margin-bottom: 1.5rem;">
-    <h1>CEF 411</h1>
-    <div class="subtitle">Centro de Ensino Fundamental 411 de Samambaia</div>
-    
-    <% if (erro) { %>
-      <div class="alert alert-error" style="margin-bottom: 1.5rem; background: #fee2e2; color: #991b1b; padding: 0.75rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600;">
-        <%= erro %>
+  <main class="login-layout">
+    <section class="login-intro" aria-label="CEF 411 Samambaia">
+      <a class="login-school-brand" href="/login" aria-label="CEF 411, página de acesso">
+        <span class="login-brand-mark"><img src="/img/Logo.png" alt=""></span>
+        <span class="login-brand-copy">
+          <strong>CEF 411</strong>
+          <small>Samambaia · Distrito Federal</small>
+        </span>
+      </a>
+      <div class="login-intro-copy">
+        <h1>Educação que transforma.</h1>
+        <h2>Presença acompanhada, aprendizagem fortalecida.</h2>
+        <p class="login-intro-text">Uma ferramenta para acompanhar a frequência, fortalecer o compromisso com a aprendizagem e valorizar a jornada de cada estudante.</p>
       </div>
-    <% } %>
+      <div class="login-scene-icons" aria-hidden="true">
+        <span class="login-scene-icon">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M7.5 3.5v3M16.5 3.5v3M4 9.5h16M8 13h3M8 16h6"/></svg>
+        </span>
+        <span class="login-scene-icon">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5"/><path d="m8.5 12.2 2.3 2.3 4.8-5"/></svg>
+        </span>
+        <span class="login-scene-icon">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M3.5 5.5c3.2-.9 6.1-.3 8.5 1.6v12c-2.4-1.9-5.3-2.5-8.5-1.6v-12ZM20.5 5.5c-3.2-.9-6.1-.3-8.5 1.6v12c2.4-1.9 5.3-2.5 8.5-1.6v-12Z"/><path d="M7 9h2.5M7 12h2.5M14.5 9H17M14.5 12H17"/></svg>
+        </span>
+      </div>
+      <div class="login-intro-note">CEF 411 · Samambaia · Distrito Federal</div>
+    </section>
 
-    <form method="post" action="/login">
-      <div class="form-group">
-        <label for="cpf">CPF</label>
-        <input type="text" id="cpf" name="cpf" required placeholder="000.000.000-00" autofocus>
+    <section class="login-panel" aria-labelledby="login-title">
+      <div class="login-card">
+        <div class="login-card-heading">
+          <p class="login-card-kicker">Acesso do professor</p>
+          <h2 id="login-title">Bem-vindo ao ambiente escolar</h2>
+          <p class="subtitle">Acesse para registrar e acompanhar a frequência dos seus alunos.</p>
+        </div>
+
+        <% if (erro) { %>
+          <div class="login-error" role="alert"><%= erro %></div>
+        <% } %>
+
+        <form method="post" action="/login" class="login-form">
+          <div class="form-group">
+            <label for="cpf">CPF</label>
+            <input type="text" id="cpf" name="cpf" required placeholder="000.000.000-00" autocomplete="username" autofocus>
+          </div>
+          <div class="form-group">
+            <label for="senha">Senha</label>
+            <input type="password" id="senha" name="senha" required placeholder="Digite sua senha" autocomplete="current-password">
+          </div>
+          <button type="submit" class="btn btn-primary">Acessar minha área</button>
+        </form>
+
+        <footer class="login-meta">
+          <span>Versão <strong><%= versao %></strong></span>
+          <span>&copy; <%= new Date().getFullYear() %> Sistema de Gestão de Presença</span>
+          <span>Todos os direitos reservados a Arsocomputadores</span>
+        </footer>
       </div>
-      <div class="form-group">
-        <label for="senha">Senha</label>
-        <input type="password" id="senha" name="senha" required placeholder="••••••••">
-      </div>
-      <button type="submit" class="btn btn-primary">Entrar no Sistema</button>
-    </form>
-    
-    <div style="margin-top: 2rem; font-size: 0.75rem; color: var(--text-muted); font-weight: 500; display: flex; flex-direction: column; gap: 0.35rem; align-items: center;">
-      <span>Versão: <strong><%= versao %></strong></span>
-      <span>&copy; <%= new Date().getFullYear() %> — Sistema de Gestão de Presença</span>
-      <span>Todos os direitos reservados a Arsocomputadores</span>
-    </div>
-  </div>
+    </section>
+  </main>
 
   <script>
     // Máscara simples para CPF
