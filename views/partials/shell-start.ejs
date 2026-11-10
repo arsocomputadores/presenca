@@ -10,11 +10,16 @@
   <div class="app-shell">
     <aside class="sidebar">
       <div class="sidebar-brand">
-        <img src="/img/Logo.png" alt="Logo CEF 411" style="width: 80px; margin-bottom: 1rem; display: block; margin-left: auto; margin-right: auto;">
-        <h1>CEF 411</h1>
-        <span>Samambaia - DF</span>
+        <div class="sidebar-brand-mark">
+          <img src="/img/Logo.png" alt="Logo CEF 411">
+        </div>
+        <div class="sidebar-brand-copy">
+          <h1>CEF 411</h1>
+          <span>Samambaia - DF</span>
+        </div>
       </div>
-      <nav>
+      <nav aria-label="Navegação principal">
+        <div class="sidebar-nav-label">Menu principal</div>
         <a href="/" class="<%= titulo === 'Painel' ? 'active' : '' %>">Painel</a>
         <% if (usuario && (usuario.perfil === 'admin' || usuario.perfil === 'professor' || (usuario.perfil === 'direcao' && direcaoPodeLancarFrequencia))) { %>
           <a href="/frequencia" class="<%= titulo === 'Lançar frequência' ? 'active' : '' %>">Frequência</a>
@@ -50,13 +55,20 @@
             <% } %>
           </a>
         <% } %>
-        <a href="/logout" class="no-print nav-logout" style="color: var(--danger); font-weight: bold;">Sair</a>
+        <a href="/logout" class="no-print nav-logout">Sair</a>
       </nav>
       <div class="sidebar-footer">
-        <div class="user-name"><%= usuario.nome %></div>
-        <div><%= usuario.perfil %></div>
-        <form action="/logout" method="post" style="margin-top:0.75rem">
-          <button type="submit" class="btn btn-sm btn-secondary" style="width:100%">Sair</button>
+        <% const partesNomeUsuario = usuario.nome.trim().split(/\s+/); %>
+        <% const nomeUsuarioSidebar = partesNomeUsuario.length > 1 ? `${partesNomeUsuario[0]} ${partesNomeUsuario[partesNomeUsuario.length - 1]}` : partesNomeUsuario[0]; %>
+        <div class="sidebar-user">
+          <div class="sidebar-user-mark"><%= usuario.nome.charAt(0).toUpperCase() %></div>
+          <div class="sidebar-user-copy">
+            <div class="user-name"><%= nomeUsuarioSidebar %></div>
+            <div class="user-role"><%= usuario.perfil %></div>
+          </div>
+        </div>
+        <form action="/logout" method="post" class="sidebar-logout-form">
+          <button type="submit" class="sidebar-logout-button">Sair</button>
         </form>
       </div>
     </aside>
